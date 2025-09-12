@@ -7,7 +7,7 @@ const dbService = new DatabaseService();
 
 router.get('/', (req, res) => {
 	res.json({
-		message: 'Bienvenue sur l\'API',
+		message: 'Welcome on the API',
 		timestamp: new Date().toISOString()
 	});
 });
