@@ -87,7 +87,6 @@ app.use(express.urlencoded({extended: true}));
 // Utiliser le router
 app.use('/api', router);
 
-// Route de base (optionnel)
 app.get('/', (req, res) => {
 	res.json({
 		name: "Unofficial CnR API",
