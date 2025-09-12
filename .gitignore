@@ -1,0 +1,39 @@
+# Variables d'environnement - CRITIQUE pour Prisma
+.env
+
+# Prisma - Fichiers générés à ignorer
+node_modules/.prisma/
+.prisma/
+/generated/prisma
+
+# Base de données locale (si SQLite)
+*.db
+*.sqlite
+*.sqlite3
+/prisma/dev.db
+
+# Dépendances Node.js
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+
+# Logs
+logs
+*.log
+
+# Cache
+.cache/
+out/
+
+# IDE et éditeurs
+.vscode/
+.idea/
+
+# Fichiers système
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
