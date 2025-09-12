@@ -65,8 +65,11 @@ const ratelimit = new Ratelimit({
 });
 
 const RateLimit = async (req, res, next) => {
-	const ip = req.get("x-forward-for") ?? "192.168.1.1"; // Get IP address
-	const { success, reset } = await ratelimit.limit(ip); // Check request limit
+	const ip = req.headers['x-forwarded-for'] ||
+		req.headers['x-real-ip'] ||
+		req.connection.remoteAddress ||
+		'127.0.0.1'; // Get IP address
+	const {success, reset} = await ratelimit.limit(ip); // Check request limit
 	if (!success) { // Too many requests
 		const retryAfter = Math.floor((reset - Date.now()) / 1000);
 		return res
