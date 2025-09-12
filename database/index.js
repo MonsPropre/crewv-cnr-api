@@ -24,20 +24,38 @@ export class DatabaseService {
 	}
 
 	async connect() {
-		try {
-			await this.prisma.$connect();
-			console.log(
-				`${chalk.black.bgMagenta(
-					"[PRISMA]"
-				)} - Postgres database Ready to use!`
-			);
-		} catch (error) {
-			console.log(
-				`${chalk.black.bgRed(
-					"[PRISMA]"
-				)} - Postgres database Failed to connect!`
-			);
-			process.exit(1);
+		const maxRetries = 1;
+		let attempt = 0;
+
+		while (attempt <= maxRetries) {
+			try {
+				await this.prisma.$connect();
+				console.log(
+					`${chalk.black.bgMagenta(
+						"[PRISMA]"
+					)} - Postgres database Ready to use!`
+				);
+				return; // Connexion réussie, on sort de la fonction
+			} catch (error) {
+				attempt++;
+
+				if (attempt <= maxRetries) {
+					console.log(
+						`${chalk.black.bgYellow(
+							"[PRISMA]"
+						)} - Tentative ${attempt} échouée, retry dans 2 secondes...`
+					);
+					// Attendre 2 secondes avant de retry
+					await new Promise(resolve => setTimeout(resolve, 2000));
+				} else {
+					console.log(
+						`${chalk.black.bgRed(
+							"[PRISMA]"
+						)} - Postgres database Failed to connect après ${attempt} tentatives!`
+					);
+					process.exit(1);
+				}
+			}
 		}
 	}
 
