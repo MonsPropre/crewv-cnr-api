@@ -18,7 +18,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 function ipLogger(req, res, next) {
-	const ip = req.ip;
+	const ip = req.headers['x-forwarded-for']?.split(',') || req.connection.remoteAddress || '127.0.0.1';
 	let masked = '';
 	if (ip) {
 		if (ip.includes('.')) {
