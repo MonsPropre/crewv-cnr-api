@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node .",
-    "vercel-build": "prisma generate && prisma migrate deploy"
+    "vercel-build": "npx prisma generate && prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
