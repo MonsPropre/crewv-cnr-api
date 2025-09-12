@@ -75,7 +75,10 @@ const RateLimit = async (req, res, next) => {
 		return res
 			.status(429)
 			.set("Retry-After", String(retryAfter))
-			.send("Too Many Requests");
+			.json({
+				error: "COOLDOWN",
+				message: `Please wait ${retryAfter} seconds before making another request.`
+			});
 	}
 	next(); // Allow the request
 };
