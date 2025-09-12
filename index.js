@@ -101,7 +101,7 @@ app.get('/', (req, res) => {
 		description: "Welcome!",
 		documentation: "Coming soon",
 		version: "1.0.0",
-		apiEndpoint: '/api',
+		apiEndpoint: '/',
 		requestId: req.customReqId,
 		timestamp: new Date().toISOString()
 	});
