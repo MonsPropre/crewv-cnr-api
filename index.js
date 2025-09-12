@@ -77,7 +77,7 @@ const RateLimit = async (req, res, next) => {
 			.set("Retry-After", String(retryAfter))
 			.json({
 				error: "COOLDOWN",
-				message: `Please wait ${retryAfter} seconds before making another request.`
+				message: `Please wait ${Math.abs(retryAfter)} seconds before making another request.`
 			});
 	}
 	next(); // Allow the request
