@@ -5,13 +5,6 @@ const router = express.Router();
 
 const dbService = new DatabaseService();
 
-router.get('/', (req, res) => {
-	res.json({
-		message: 'Welcome on the API',
-		timestamp: new Date().toISOString()
-	});
-});
-
 router.get("/players/info", async (req, res) => {
 	const { id, uid, username } = req.query;
 
