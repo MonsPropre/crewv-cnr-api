@@ -330,22 +330,5 @@ process.on('unhandledRejection', async (reason) => {
 	console.error(`Unhandled Rejection:`, reason);
 });
 
-// Suppression des anciens gestionnaires SIGINT/SIGTERM car ils sont maintenant gérés par ProcessLock
-// process.on('SIGINT', () => {
-// 	console.log(`Shutting down gracefully...`);
-// 	if (processor) {
-// 		processor.stop();
-// 	}
-// 	process.exit(0);
-// });
-
-// process.on('SIGTERM', () => {
-// 	console.log(`Received SIGTERM, shutting down...`);
-// 	if (processor) {
-// 		processor.stop();
-// 	}
-// 	process.exit(0);
-// });
-
 const processor = new PlayerDataProcessor();
 processor.start();
