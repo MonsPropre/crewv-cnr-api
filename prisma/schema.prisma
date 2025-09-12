@@ -6,15 +6,24 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Players {
-  id       Int       @id @default(autoincrement())
-  Uid      String    @unique(map: "Uid")
-  Username String?
-  Crew     String?
-  LastSeen DateTime? @updatedAt
+  id        Int       @id @default(autoincrement())
+  Uid       String    @unique(map: "Uid")
+  Username  String?
+  Crew      String?
+  LastSeen  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([Username])
+  @@index([Crew])
+  @@index([LastSeen])
+  @@index([Username, Crew])
+  @@index([LastSeen, Username])
+  @@index([Uid, Username])
+  @@index([createdAt])
+  @@map("Players")
 }

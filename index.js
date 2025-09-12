@@ -4,21 +4,22 @@ import {DatabaseService} from "./database/index.js";
 import {checkCrew} from "./functions/checkCrew.js";
 import chalk from "chalk";
 import initLogger from "./utils/initLogger.js";
+import crypto from "crypto";
+import ProcessLock from "./class/ProcessLock.js"; // Importation de ProcessLock
 
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import router from './router.js';
-import ProcessLock from "./class/ProcessLock.js";
-
-const processLock = new ProcessLock();
-
-// ---- Express App ----
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 function ipLogger(req, res, next) {
-	const ip = req.headers['x-forwarded-for']?.split(',') || req.connection.remoteAddress || '127.0.0.1';
+	const ip = req.headers['x-forwarded-for'] ||
+		req.headers['x-real-ip'] ||
+		req.connection.remoteAddress ||
+		'anonymous'
+	// 	req.socket.remoteAddress;
 	let masked = '';
 	if (ip) {
 		if (ip.includes('.')) {
@@ -36,9 +37,10 @@ function ipLogger(req, res, next) {
 	}
 
 	const success = res.statusCode < 400;
+	req.customReqId = crypto.randomBytes(6).toString('hex');
 
 	console.log(
-		`${success ? chalk.green.bold(`[${req.method}] [${res.statusCode}]`) : chalk.red.bold(`[${req.method}] [${res.statusCode}]`)} ${chalk.yellow(`${req.originalUrl} - IP: ${masked}`)}`
+		`${success ? chalk.green.bold(`[${req.method}] [${req.customReqId}] [${res.statusCode}]`) : chalk.red.bold(`[${req.method}] [${req.customReqId}] [${res.statusCode}]`)} ${chalk.yellow(`${req.originalUrl} - IP: ${masked}`)}`
 	);
 
 	if (typeof next === 'function' && success) {
@@ -48,10 +50,19 @@ function ipLogger(req, res, next) {
 }
 
 const ipLimiter = rateLimit({
-	windowMs: 1000,
-	limit: 1,
+	windowMs: 1000, // 1 minute de cooldown
+	max: 1,
 	standardHeaders: true,
 	legacyHeaders: false,
+	keyGenerator: (req) => {
+		return req.headers['x-forwarded-for'] ||
+			req.headers['x-real-ip'] ||
+			req.connection.remoteAddress ||
+			'anonymous';
+	},
+	skip: (req) => {
+		// return req.path === '/health';
+	},
 	handler: (req, res, next, options) => {
 		const retryAfter = Math.ceil((req.rateLimit.resetTime - Date.now()) / 1000);
 		res.setHeader('Retry-After', retryAfter);
@@ -59,6 +70,7 @@ const ipLimiter = rateLimit({
 			error: "COOLDOWN",
 			message: `Please wait ${retryAfter} seconds before making another request.`
 		});
+
 		ipLogger(req, res, next);
 	},
 });
@@ -72,15 +84,19 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
+// Utiliser le router
 app.use('/api', router);
 
+// Route de base (optionnel)
 app.get('/', (req, res) => {
 	res.json({
 		name: "Unofficial CnR API",
 		description: "Welcome!",
 		documentation: "Coming soon",
 		version: "1.0.0",
-		apiEndpoint: '/api'
+		apiEndpoint: '/api',
+		requestId: req.customReqId,
+		timestamp: new Date().toISOString()
 	});
 });
 
@@ -93,17 +109,17 @@ app.use((req, res, next) => {
 	});
 });
 
+// Démarrage du serveur
 app.listen(PORT, () => {
 	console.log(`Ready on port ${PORT}`);
 	console.log(`API available on http://localhost:${PORT}/api`);
 });
 
-// ---- PlayerDataProcessor with ProcessLock ----
-
 class PlayerDataProcessor {
 	constructor() {
 		this.dbService = new DatabaseService();
 		this.fetcher = new ApiFetcher();
+		this.processLock = new ProcessLock(); // Initialisation du ProcessLock
 		this.urlsConfig = [
 			{sId: 'US1', url: 'https://api.gtacnr.net/cnr/players?serverId=US1'},
 			{sId: 'US2', url: 'https://api.gtacnr.net/cnr/players?serverId=US2'},
@@ -112,10 +128,11 @@ class PlayerDataProcessor {
 			{sId: 'SEA', url: 'https://sea.gtacnr.net/cnr/players?serverId=SEA'}
 		];
 		this.task = null;
-		this.isProcessing = false;
+		this.isProcessing = false; // Flag pour empêcher les exécutions simultanées
 	}
 
 	async processPlayers() {
+		// Vérifier si un traitement est déjà en cours
 		if (this.isProcessing) {
 			console.log(
 				`${chalk.yellow('[SKIP]')} - Skipping execution - previous task still running`
@@ -123,18 +140,29 @@ class PlayerDataProcessor {
 			return {skipped: true};
 		}
 
-		const lockId = processLock.acquire('processPlayers');
+		// Acquérir le lock avant de commencer le traitement
+		const lockId = this.processLock.acquire('player-data-fetch');
+		console.log(`${chalk.blue('[LOCK]')} - Acquired lock: ${lockId}`);
+
+		// Marquer comme en cours de traitement
 		this.isProcessing = true;
+
 		const invalidPlayers = [];
 		const startTime = Date.now();
 
 		try {
 			await this.dbService.connect();
 
+			// Mesurer le temps de fetch
+			const fetchStart = Date.now();
 			this.fetcher.setUrls(this.urlsConfig);
 			this.fetcher.setName('CnRAPI');
 			const results = await this.fetcher.fetchAllWithDelay();
+			const fetchTime = Date.now() - fetchStart;
+			console.log(`${chalk.blue('[TIMING]')} - API fetch: ${fetchTime}ms`);
 
+			// Mesurer le temps de transformation
+			const transformStart = Date.now();
 			const transformedPlayers = await Promise.all(
 				results.data.map(async (player, index) => {
 					try {
@@ -171,21 +199,50 @@ class PlayerDataProcessor {
 			);
 
 			const validPlayers = transformedPlayers.filter(Boolean);
+			const transformTime = Date.now() - transformStart;
+			console.log(`${chalk.blue('[TIMING]')} - Data transform: ${transformTime}ms`);
 
 			if (validPlayers.length === 0) {
 				console.warn(`No valid players to process`);
 				return this.logResults(0, invalidPlayers.length, 0);
 			}
 
+			// Mesurer le temps de base de données avec méthode optimisée
+			const dbStart = Date.now();
 			let upsertResults = [];
 			try {
-				const method = validPlayers.length > 200 ? 'upsertPlayersOptimized' : 'upsertPlayersTransaction';
+				// Nouvelle logique de sélection de méthode
+				let method;
+				if (validPlayers.length > 500) {
+					method = 'upsertPlayersOptimizedNative'; // SQL natif pour très gros volumes
+				} else if (validPlayers.length > 100) {
+					method = 'bulkUpsertPlayers'; // Bulk upsert pour volumes moyens
+				} else if (validPlayers.length > 50) {
+					method = 'upsertPlayersOptimized'; // Chunks optimisés
+				} else {
+					method = 'upsertPlayersTransaction'; // Transaction simple pour petits volumes
+				}
+
+				console.log(`${chalk.blue('[METHOD]')} - Using ${method} for ${validPlayers.length} players`);
 				upsertResults = await this.dbService[method](validPlayers);
 			} catch (error) {
 				console.error(`Upsert error:`, error.message);
+
+				// Fallback vers une méthode plus simple en cas d'erreur
+				console.log(`${chalk.yellow('[FALLBACK]')} - Trying fallback method`);
+				try {
+					upsertResults = await this.dbService.upsertPlayersTransaction(validPlayers);
+				} catch (fallbackError) {
+					console.error(`Fallback error:`, fallbackError.message);
+				}
 			}
 
+			const dbTime = Date.now() - dbStart;
+			console.log(`${chalk.blue('[TIMING]')} - Database upsert: ${dbTime}ms`);
+
 			const processingTime = Date.now() - startTime;
+			console.log(`${chalk.green('[TOTAL]')} - Total processing time: ${processingTime}ms (Fetch: ${fetchTime}ms, Transform: ${transformTime}ms, DB: ${dbTime}ms)`);
+
 			return this.logResults(validPlayers.length, invalidPlayers.length, processingTime);
 
 		} catch (error) {
@@ -197,12 +254,18 @@ class PlayerDataProcessor {
 			} catch (error) {
 				console.error(`Disconnect error:`, error.message);
 			}
+
 			this.isProcessing = false;
-			processLock.release(lockId);
+
+			// Libérer le lock à la fin du traitement
+			this.processLock.release(lockId);
+			console.log(`${chalk.blue('[UNLOCK]')} - Released lock: ${lockId}`);
 		}
 	}
 
 	logResults(validCount, invalidCount, processingTime) {
+		// console.log(`Processed: ${validCount} valid, ${invalidCount} invalid players in ${processingTime}ms`);
+
 		if (invalidCount > 0) {
 			console.log(`${invalidCount} players had issues`);
 		}
@@ -213,6 +276,7 @@ class PlayerDataProcessor {
 	start() {
 		console.log(`Starting player data processor (every minute)`);
 
+		// Exécution immédiate
 		this.processPlayers();
 
 		this.task = cron.schedule('* * * * *', async () => {
@@ -239,7 +303,8 @@ class PlayerDataProcessor {
 	getStatus() {
 		return {
 			isRunning: this.task && this.task.getStatus() === 'scheduled',
-			isProcessing: this.isProcessing
+			isProcessing: this.isProcessing,
+			activeLocks: this.processLock.getActiveLocks() // Ajout des locks actifs au status
 		};
 	}
 }
@@ -264,6 +329,23 @@ process.on('uncaughtException', async (error) => {
 process.on('unhandledRejection', async (reason) => {
 	console.error(`Unhandled Rejection:`, reason);
 });
+
+// Suppression des anciens gestionnaires SIGINT/SIGTERM car ils sont maintenant gérés par ProcessLock
+// process.on('SIGINT', () => {
+// 	console.log(`Shutting down gracefully...`);
+// 	if (processor) {
+// 		processor.stop();
+// 	}
+// 	process.exit(0);
+// });
+
+// process.on('SIGTERM', () => {
+// 	console.log(`Received SIGTERM, shutting down...`);
+// 	if (processor) {
+// 		processor.stop();
+// 	}
+// 	process.exit(0);
+// });
 
 const processor = new PlayerDataProcessor();
 processor.start();
