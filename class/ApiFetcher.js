@@ -57,7 +57,7 @@ export class ApiFetcher {
 			);
 
 			const response = await fetch(url, {
-				timeout: 1100,
+				timeout: 2500,
 				...options
 			});
 
