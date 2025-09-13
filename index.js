@@ -133,11 +133,7 @@ app.get('/', (req, res) => {
 		documentation: "Coming soon",
 		version: "1.0.0",
 		apiEndpoint: '/',
-		reg: req.headers['x-vercel-id'],
-		region: {
-			id: region ?? VERCEL_REGION,
-			...regions[region ?? VERCEL_REGION]
-		},
+		region: regions[VERCEL_REGION].name,
 		requestId: req.customReqId,
 		timestamp: new Date().toISOString()
 	});
