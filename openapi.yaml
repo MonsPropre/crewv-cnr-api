@@ -50,12 +50,12 @@ paths:
                     example: "/"
                   region:
                     type: string
-                    description: Name of the AWS region where the API is deployed
-                    example: "eu-west-3"
+                    description: Name of the Vercel region where the API is deployed
+                    example: "eu-west-1"
                   requestId:
                     type: string
                     description: Unique request identifier
-                    example: "req_123456789"
+                    example: "8e8244c6b43f"
                   timestamp:
                     type: string
                     format: date-time
@@ -83,26 +83,26 @@ paths:
       parameters:
         - name: id
           in: query
-          description: Numeric ID of the player
+          description: Numeric ID of the player in the database
           required: false
           schema:
             type: integer
             minimum: 1
-          example: 123
+          example: 11086
         - name: uid
           in: query
           description: Unique UID of the player
           required: false
           schema:
             type: string
-          example: "player_uid_123"
+          example: "072D51B8FA964658AE9BBCA0B7766FA9"
         - name: username
           in: query
-          description: Username of the player
+          description: Exact Username of the player (with crew Tag)
           required: false
           schema:
             type: string
-          example: "JohnDoe"
+          example: "[CBŚP] Baldy"
       responses:
         '200':
           description: Player information found
@@ -116,20 +116,31 @@ paths:
                     id:
                       type: integer
                       description: Unique player ID
-                      example: 123
+                      example: 32689
                     Uid:
                       type: string
                       description: Unique player UID
-                      example: "player_uid_123"
+                      example: "072D51B8FA964658AE9BBCA0B7766FA9"
                     Username:
                       type: string
                       description: Player username
-                      example: "JohnDoe"
+                      example: "[CBŚP] Baldy"
                     Crew:
                       type: string
                       nullable: true
                       description: Player's crew (can be null)
-                      example: "CrewAlpha"
+                      example: "CBŚP"
+                    LastSeen:
+                      type: string
+                      format: date-time
+                      description: Last time the player was seen
+                      example: "2025-09-12T23:10:28.430Z"
+                    createdAt:
+                      type: string
+                      format: date-time
+                      description: When the player record was created
+                      example: "2025-09-13T00:02:05.723Z"
+
                   required:
                     - id
                     - Uid
@@ -144,16 +155,6 @@ paths:
                   error:
                     type: string
                     example: "Please specify either 'id' or 'uid' or 'username' for the search."
-        '404':
-          description: No player found
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "No player found."
         '500':
           description: Internal server error
           content:
@@ -214,6 +215,14 @@ components:
           type: string
           nullable: true
           description: Player's crew
+        LastSeen:
+          type: string
+          format: date-time
+          description: Last time the player was seen
+        createdAt:
+          type: string
+          format: date-time
+          description: When the player record was created
 
     ErrorResponse:
       type: object
