@@ -104,16 +104,15 @@ app.get('/stayalive', (req, res) => {
 
 app.get('/', (req, res) => {
 	const region = req.headers['x-vercel-id'];
-	const ENV = getEnv();
+	const {VERCEL_REGION} = getEnv();
 
 	res.json({
-		ENV,
 		name: "Unofficial CnR API",
 		description: "Welcome!",
 		documentation: "Coming soon",
 		version: "1.0.0",
 		apiEndpoint: '/',
-		region,
+		region: VERCEL_REGION,
 		requestId: req.customReqId,
 		timestamp: new Date().toISOString()
 	});
