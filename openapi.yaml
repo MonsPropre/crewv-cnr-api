@@ -14,7 +14,7 @@ info:
     name: MIT
 
 servers:
-  - url: https://crewvapi.vercel.app/
+  - url: https://crewvapi.vercel.app
     description: Production server
 
 paths:
