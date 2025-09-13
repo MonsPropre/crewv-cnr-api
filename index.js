@@ -128,7 +128,7 @@ app.get('/', (req, res) => {
 	}
 
 	res.json({
-		name: "Unofficial CnR API",
+		name: "CrewV CnR API",
 		description: "Welcome!",
 		documentation: "Coming soon",
 		version: "1.0.0",
