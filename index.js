@@ -95,6 +95,13 @@ app.use(express.urlencoded({extended: true}));
 // Utiliser le router
 app.use('/', router);
 
+app.get('/stayalive', (req, res) => {
+	res.json({
+		message: 'Wakey Wakey',
+		timestamp: new Date().toISOString()
+	});
+});
+
 app.get('/', (req, res) => {
 	res.json({
 		name: "Unofficial CnR API",
