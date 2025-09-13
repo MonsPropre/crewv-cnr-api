@@ -66,5 +66,3 @@ export class ProcessLock {
 		});
 	}
 }
-
-export default ProcessLock;

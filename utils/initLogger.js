@@ -12,7 +12,6 @@ function formatSegment(segment, {fileUpperCase, fileCapitalized}) {
 }
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 function getPrefix({
 					   showDate,
@@ -25,7 +24,6 @@ function getPrefix({
 				   }) {
 	let prefix = '';
 
-	// Date/Time - toujours sûr
 	if (showDate) {
 		try {
 			const pad = n => n.toString().padStart(2, '0');
@@ -37,7 +35,6 @@ function getPrefix({
 		}
 	}
 
-	// File path - peut échouer, donc isolé
 	if (showFile) {
 		try {
 			const stack = new Error().stack.split('\n');
@@ -47,16 +44,13 @@ function getPrefix({
 			);
 			if (!callerLine) callerLine = stack[2] || '';
 
-			// Extraire le chemin du fichier de la stack trace
 			const match = callerLine.match(/\((.*):\d+:\d+\)/) || callerLine.match(/at (.*):\d+:\d+/);
 			let filePath = match ? match[1] : "unknown";
 
-			// Convertir les URLs file:// en chemins normaux
 			if (filePath.startsWith('file://')) {
 				try {
 					filePath = fileURLToPath(filePath);
 				} catch (error) {
-					// Si la conversion échoue, essayer de nettoyer manuellement
 					filePath = filePath.replace('file://', '').replace(/^\/+/, '/');
 				}
 			}
@@ -65,10 +59,8 @@ function getPrefix({
 
 			if (showRelativePath) {
 				try {
-					// Calculer le chemin relatif par rapport au projet
 					let relPath = path.relative(projectRoot, filePath);
 
-					// Si le chemin est vide ou égal au nom du fichier, utiliser juste le nom
 					if (!relPath || relPath === path.basename(filePath)) {
 						relPath = path.basename(filePath);
 					}
@@ -92,7 +84,6 @@ function getPrefix({
 
 			prefix += (prefix ? ' ' : '') + `[${fileDisplay}]`;
 		} catch (e) {
-			// Si tout échoue pour le fichier, on ajoute quand même quelque chose
 			prefix += (prefix ? ' ' : '') + '[file-error]';
 		}
 	}
@@ -129,12 +120,11 @@ export function initLogger({
 				loggerFile
 			});
 		} catch (e) {
-			// Fallback minimal si tout échoue
 			const time = new Date().toLocaleTimeString();
 			prefix = `[${time}] [log-error]`;
 		}
 
-		origFn(`${chalk.hex("#a9a9a9")(prefix)}`, ...args);
+		origFn(`${chalk.hex("#a9a9a9")(`[${prefix}]`)}`, ...args);
 	}
 
 	if (enableLog) {

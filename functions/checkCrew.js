@@ -1,5 +1,4 @@
 export async function checkCrew(text) {
-
 	const pattern =
 		/\[\s*([^\]]+?)\s*]\s*.+|.+\s*\[\s*([^\]]+?)\s*]|([^|\[\]\s]+)\s*\|\s*.+|([^|\[\]\s]+)\s+[xX]\s+.+/i;
 
@@ -24,5 +23,3 @@ export async function checkCrew(text) {
 		Username: text.trim()
 	};
 }
-
-export default checkCrew;

@@ -298,5 +298,3 @@ export async function fetchUrlsWithDelay(fetchURLs, delayMs = 1000) {
 	const fetcher = new ApiFetcher();
 	return await fetcher.fetchAllWithDelay(fetchURLs, delayMs);
 }
-
-export default ApiFetcher;

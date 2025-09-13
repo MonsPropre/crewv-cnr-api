@@ -7,7 +7,6 @@ export class DatabaseService {
 	constructor() {
 		this.prisma = new PrismaClient({
 			log: ['warn', 'error'],
-			// Optimisations de connexion
 			datasources: {
 				db: {
 					url: process.env.DATABASE_URL
@@ -15,7 +14,6 @@ export class DatabaseService {
 			}
 		});
 
-		// Pool de connexions et cache de requêtes
 		this.connectionPool = {
 			maxConnections: 20,
 			idleTimeout: 30000,
@@ -35,7 +33,7 @@ export class DatabaseService {
 						"[PRISMA]"
 					)} - Postgres database Ready to use!`
 				);
-				return; // Connexion réussie, on sort de la fonction
+				return;
 			} catch (error) {
 				attempt++;
 
@@ -43,15 +41,14 @@ export class DatabaseService {
 					console.log(
 						`${chalk.black.bgYellow(
 							"[PRISMA]"
-						)} - Tentative ${attempt} échouée, retry dans 2 secondes...`
+						)} - Attempt ${attempt} failed, retry in 2 seconds ...`
 					);
-					// Attendre 2 secondes avant de retry
 					await new Promise(resolve => setTimeout(resolve, 2000));
 				} else {
 					console.log(
 						`${chalk.black.bgRed(
 							"[PRISMA]"
-						)} - Postgres database Failed to connect après ${attempt} tentatives!`
+						)} - Postgres database Failed to connect after ${attempt} attempts!`
 					);
 					process.exit(1);
 				}
@@ -178,8 +175,7 @@ export class DatabaseService {
 
 	async upsertPlayer(playerData) {
 		try {
-			// Extraction correcte des données imbriquées
-			const {Uid, Username, Crew, sId, Timestamp} = playerData;
+			const {Uid, Username, Crew, Timestamp} = playerData;
 
 			if (!Uid) {
 				throw new Error('UID is required for upsert operation');
@@ -220,7 +216,6 @@ export class DatabaseService {
 		}
 	}
 
-	// MÉTHODE OPTIMISÉE : Utilise des requêtes SQL natives pour de meilleures performances
 	async upsertPlayersOptimizedNative(playersData) {
 		try {
 			if (!Array.isArray(playersData) || playersData.length === 0) {
@@ -230,13 +225,11 @@ export class DatabaseService {
 			const startTime = Date.now();
 			console.log(`${chalk.black.bgBlue("[PRISMA]")} - Starting optimized native upsert for ${playersData.length} players`);
 
-			// Préparer les données pour la requête SQL native
 			const values = playersData.map(player => {
 				const {Uid, Username, Crew, Timestamp} = player;
 				return `('${Uid}', ${Username ? `'${Username.replace(/'/g, "''")}'` : 'NULL'}, ${Crew ? `'${Crew.replace(/'/g, "''")}'` : 'NULL'}, ${Timestamp ? `'${Timestamp.toISOString()}'` : 'NULL'})`;
 			}).join(',\n');
 
-			// Requête SQL native optimisée avec ON CONFLICT
 			const query = `
                 INSERT INTO "Players" ("Uid", "Username", "Crew", "LastSeen")
                 VALUES ${values} ON CONFLICT ("Uid") 
@@ -262,7 +255,6 @@ export class DatabaseService {
 		}
 	}
 
-	// MÉTHODE AMÉLIORÉE : Transaction avec chunks plus petits et timeout personnalisé
 	async upsertPlayersTransaction(playersData) {
 		try {
 			if (!Array.isArray(playersData) || playersData.length === 0) {
@@ -296,8 +288,8 @@ export class DatabaseService {
 					});
 				}),
 				{
-					timeout: 60000, // 60 secondes de timeout
-					isolationLevel: 'ReadCommitted' // Niveau d'isolation moins strict
+					timeout: 60000,
+					isolationLevel: 'ReadCommitted'
 				}
 			);
 
@@ -311,7 +303,6 @@ export class DatabaseService {
 		}
 	}
 
-	// MÉTHODE CORRIGÉE : Chunks plus petits et gestion d'erreur améliorée
 	async upsertPlayersOptimized(playersData) {
 		try {
 			if (!Array.isArray(playersData) || playersData.length === 0) {
@@ -320,14 +311,12 @@ export class DatabaseService {
 
 			const startTime = Date.now();
 
-			// Pour de très gros volumes, utiliser la méthode native
 			if (playersData.length > 500) {
 				console.log(`${chalk.black.bgYellow("[PRISMA]")} - Large dataset detected (${playersData.length}), using native SQL`);
 				return await this.upsertPlayersOptimizedNative(playersData);
 			}
 
-			// Chunks plus petits pour éviter les timeouts
-			const chunkSize = 50; // Réduit de 100 à 50
+			const chunkSize = 50;
 			const chunks = [];
 
 			for (let i = 0; i < playersData.length; i += chunkSize) {
@@ -380,7 +369,6 @@ export class DatabaseService {
 					const chunkTime = Date.now() - chunkStart;
 					console.log(`${chalk.black.bgGreen("[PRISMA]")} - Chunk ${i + 1}/${chunks.length} completed (${chunk.length} players in ${chunkTime}ms)`);
 
-					// Petit délai entre les chunks pour réduire la charge
 					if (i < chunks.length - 1) {
 						await new Promise(resolve => setTimeout(resolve, 10));
 					}
@@ -388,9 +376,6 @@ export class DatabaseService {
 				} catch (error) {
 					failedChunks++;
 					console.error(`${chalk.black.bgRed("[PRISMA]")} - Chunk ${i + 1} failed:`, error.message);
-
-					// Continuer avec les autres chunks au lieu d'arrêter complètement
-					continue;
 				}
 			}
 
@@ -409,7 +394,6 @@ export class DatabaseService {
 		}
 	}
 
-	// NOUVELLE MÉTHODE : Bulk upsert avec createMany + updateMany (plus rapide)
 	async bulkUpsertPlayers(playersData) {
 		try {
 			if (!Array.isArray(playersData) || playersData.length === 0) {
@@ -419,7 +403,6 @@ export class DatabaseService {
 			const startTime = Date.now();
 			console.log(`${chalk.black.bgBlue("[PRISMA]")} - Starting bulk upsert for ${playersData.length} players`);
 
-			// Étape 1: Récupérer tous les UIDs existants
 			const existingUids = await this.prisma.Players.findMany({
 				where: {
 					Uid: {
@@ -431,14 +414,12 @@ export class DatabaseService {
 
 			const existingUidSet = new Set(existingUids.map(p => p.Uid));
 
-			// Étape 2: Séparer les nouvelles entrées des mises à jour
 			const toCreate = playersData.filter(p => !existingUidSet.has(p.Uid));
 			const toUpdate = playersData.filter(p => existingUidSet.has(p.Uid));
 
 			let createdCount = 0;
 			let updatedCount = 0;
 
-			// Étape 3: Créer les nouveaux joueurs en batch
 			if (toCreate.length > 0) {
 				const createData = toCreate.map(({Uid, Username, Crew, Timestamp}) => ({
 					Uid,
@@ -455,7 +436,6 @@ export class DatabaseService {
 				createdCount = created.count;
 			}
 
-			// Étape 4: Mettre à jour les joueurs existants
 			if (toUpdate.length > 0) {
 				for (const {Uid, Username, Crew, Timestamp} of toUpdate) {
 					await this.prisma.Players.update({
@@ -481,7 +461,6 @@ export class DatabaseService {
 		}
 	}
 
-	// Upsert multiple players (ancienne méthode - gardée pour compatibilité)
 	async upsertPlayers(playersData) {
 		console.log(`${chalk.black.bgYellow("[PRISMA]")} - Using legacy upsertPlayers method. Consider using optimized methods.`);
 		return await this.upsertPlayersTransaction(playersData);

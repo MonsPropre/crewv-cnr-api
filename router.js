@@ -6,10 +6,10 @@ const router = express.Router();
 const dbService = new DatabaseService();
 
 router.get("/players/info", async (req, res) => {
-	const { id, uid, username } = req.query;
+	const {id, uid, username} = req.query;
 
 	if (!id && !uid && !username) {
-		return res.status(400).json({ error: "Please specify either 'id' or 'uid' or 'username' for the search." });
+		return res.status(400).json({error: "Please specify either 'id' or 'uid' or 'username' for the search."});
 	}
 
 	try {
@@ -36,13 +36,13 @@ router.get("/players/info", async (req, res) => {
 
 		res.status(200).json(players);
 	} catch (error) {
-		res.status(500).json({ error: "Internal server error." });
+		res.status(500).json({error: "Internal server error."});
 	}
 });
 
-router.use((err, req, res, next) => {
-	console.error('Erreur dans le router:', err);
-	res.status(500).json({ error: 'Erreur interne du serveur' });
+router.use((err, req, res) => {
+	console.error('Error in the Router:', err);
+	res.status(500).json({error: 'Internal server error.'});
 });
 
 export default router;
