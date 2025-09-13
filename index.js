@@ -103,7 +103,7 @@ app.get('/stayalive', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-	const region = req.headers['x-vercel-id'];
+	const region = req.headers['x-vercel-id'].split('::')[1];
 	const {VERCEL_REGION} = getEnv();
 	const regions = {
 		"arn1": {name: "eu-north-1", loc: "Stockholm, Sweden"},
@@ -134,8 +134,8 @@ app.get('/', (req, res) => {
 		version: "1.0.0",
 		apiEndpoint: '/',
 		region: {
-			reg: VERCEL_REGION,
-			...regions[VERCEL_REGION]
+			id: region ?? VERCEL_REGION,
+			...regions[region ?? VERCEL_REGION]
 		},
 		requestId: req.customReqId,
 		timestamp: new Date().toISOString()
