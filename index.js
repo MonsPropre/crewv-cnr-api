@@ -6,7 +6,7 @@ import chalk from "chalk";
 import initLogger from "./utils/initLogger.js";
 import crypto from "crypto";
 import ProcessLock from "./class/ProcessLock.js"; // Importation de ProcessLock
-import { geolocation } from '@vercel/functions';
+import { getEnv } from '@vercel/functions';
 
 import express from 'express';
 // import rateLimit from 'express-rate-limit';
@@ -104,10 +104,10 @@ app.get('/stayalive', (req, res) => {
 
 app.get('/', (req, res) => {
 	const region = req.headers['x-vercel-id'];
-	const details = geolocation(req);
+	const ENV = getEnv();
 
 	res.json({
-		details,
+		ENV,
 		name: "Unofficial CnR API",
 		description: "Welcome!",
 		documentation: "Coming soon",
