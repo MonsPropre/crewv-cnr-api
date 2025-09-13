@@ -95,6 +95,7 @@ app.use(express.urlencoded({extended: true}));
 
 app.get("/players/info", async (req, res) => {
 	const {id, uid, username} = req.query;
+	const dbService = new DatabaseService();
 
 	// Validate that at least one search parameter is provided
 	if (!id && !uid && !username) {
