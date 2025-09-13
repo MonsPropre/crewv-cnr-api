@@ -1,0 +1,237 @@
+openapi: 3.0.3
+info:
+  title: CrewV CnR API
+  description: |
+    API for CrewV CnR - Player and crew management system
+    
+    This API allows you to:
+    - Search for player information
+    - Get API information and deployment region
+  version: 1.0.0
+  contact:
+    name: CrewV CnR Support
+  license:
+    name: MIT
+
+servers:
+  - url: https://crewvapi.vercel.app/
+    description: Production server
+
+paths:
+  /:
+    get:
+      summary: API Information
+      description: Returns general API information, including deployment region
+      operationId: getApiInfo
+      tags:
+        - API Info
+      responses:
+        '200':
+          description: API information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                    example: "CrewV CnR API"
+                  description:
+                    type: string
+                    example: "Welcome!"
+                  documentation:
+                    type: string
+                    example: "Coming soon"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  apiEndpoint:
+                    type: string
+                    example: "/"
+                  region:
+                    type: string
+                    description: Name of the AWS region where the API is deployed
+                    example: "eu-west-3"
+                  requestId:
+                    type: string
+                    description: Unique request identifier
+                    example: "req_123456789"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: ISO 8601 timestamp of the response
+                    example: "2025-09-13T10:30:00.000Z"
+                required:
+                  - name
+                  - description
+                  - documentation
+                  - version
+                  - apiEndpoint
+                  - region
+                  - requestId
+                  - timestamp
+
+  /players/info:
+    get:
+      summary: Search Player Information
+      description: |
+        Search for a player by ID, UID, or username.
+        At least one parameter must be provided.
+      operationId: getPlayerInfo
+      tags:
+        - Players
+      parameters:
+        - name: id
+          in: query
+          description: Numeric ID of the player
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+          example: 123
+        - name: uid
+          in: query
+          description: Unique UID of the player
+          required: false
+          schema:
+            type: string
+          example: "player_uid_123"
+        - name: username
+          in: query
+          description: Username of the player
+          required: false
+          schema:
+            type: string
+          example: "JohnDoe"
+      responses:
+        '200':
+          description: Player information found
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      description: Unique player ID
+                      example: 123
+                    Uid:
+                      type: string
+                      description: Unique player UID
+                      example: "player_uid_123"
+                    Username:
+                      type: string
+                      description: Player username
+                      example: "JohnDoe"
+                    Crew:
+                      type: string
+                      nullable: true
+                      description: Player's crew (can be null)
+                      example: "CrewAlpha"
+                  required:
+                    - id
+                    - Uid
+                    - Username
+        '400':
+          description: Missing or invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Please specify either 'id' or 'uid' or 'username' for the search."
+        '404':
+          description: No player found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No player found."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Internal server error."
+
+components:
+  schemas:
+    ApiInfo:
+      type: object
+      description: General API information
+      properties:
+        name:
+          type: string
+          description: API name
+        description:
+          type: string
+          description: API description
+        documentation:
+          type: string
+          description: Documentation status
+        version:
+          type: string
+          description: API version
+        apiEndpoint:
+          type: string
+          description: Main API endpoint
+        region:
+          type: string
+          description: Deployment region
+        requestId:
+          type: string
+          description: Request identifier
+        timestamp:
+          type: string
+          format: date-time
+          description: Response timestamp
+
+    Player:
+      type: object
+      description: Player information
+      properties:
+        id:
+          type: integer
+          description: Unique numeric identifier
+        Uid:
+          type: string
+          description: Unique player UID
+        Username:
+          type: string
+          description: Username
+        Crew:
+          type: string
+          nullable: true
+          description: Player's crew
+
+    ErrorResponse:
+      type: object
+      description: Standard error response
+      properties:
+        error:
+          type: string
+          description: Error message
+        message:
+          type: string
+          description: Informational message (optional)
+
+tags:
+  - name: API Info
+    description: General API information
+  - name: Players
+    description: Player management and search
+
+externalDocs:
+  description: Complete documentation (coming soon)
+  url: https://gitbook.com/crewv
