@@ -216,6 +216,45 @@ export class DatabaseService {
 		}
 	}
 
+	// Database service methods
+	async getLastFetch() {
+		try {
+			return await this.prisma.SystemMetadata.findUnique({
+				where: {key: 'players_last_fetch'}
+			});
+		} catch (error) {
+			console.error(
+				`${chalk.black.bgRed("[PRISMA]")} - Error fetching last fetch metadata:`,
+				error
+			);
+			throw error;
+		}
+	}
+
+	async upsertLastFetch() {
+		try {
+			return await this.prisma.SystemMetadata.upsert({
+				where: {key: 'players_last_fetch'},
+				update: {
+					lastFetch: new Date(),
+					value: 'success'
+				},
+				create: {
+					key: 'players_last_fetch',
+					lastFetch: new Date(),
+					value: 'success',
+					description: 'Last synchronization of players'
+				}
+			});
+		} catch (error) {
+			console.error(
+				`${chalk.black.bgRed("[PRISMA]")} - Error upserting last fetch metadata:`,
+				error
+			);
+			throw new Error('Failed to update last fetch metadata');
+		}
+	}
+
 	async upsertPlayersOptimizedNative(playersData) {
 		try {
 			if (!Array.isArray(playersData) || playersData.length === 0) {

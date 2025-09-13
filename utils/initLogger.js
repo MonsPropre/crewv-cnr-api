@@ -124,7 +124,7 @@ export function initLogger({
 			prefix = `[${time}] [log-error]`;
 		}
 
-		origFn(`${chalk.hex("#a9a9a9")(`[${prefix}]`)}`, ...args);
+		origFn(`${chalk.hex("#a9a9a9")(`${prefix}`)}`, ...args);
 	}
 
 	if (enableLog) {

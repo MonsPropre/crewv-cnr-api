@@ -252,12 +252,14 @@ class PlayerDataProcessor {
 
 				console.log(`${chalk.blue('[METHOD]')} - Using ${method} for ${validPlayers.length} players`);
 				await this.dbService[method](validPlayers);
+				await this.dbService.upsertLastFetch();
 			} catch (error) {
 				console.error(`Upsert error:`, error.message);
 
 				console.log(`${chalk.yellow('[FALLBACK]')} - Trying fallback method`);
 				try {
 					await this.dbService.upsertPlayersTransaction(validPlayers);
+					await this.dbService.upsertLastFetch();
 				} catch (fallbackError) {
 					console.error(`Fallback error:`, fallbackError.message);
 				}
@@ -335,7 +337,7 @@ class PlayerDataProcessor {
 	initLogger({
 		"enabled": true,
 		"showDate": true,
-		"showFile": false,
+		"showFile": true,
 		"showRelativePath": false,
 		"fileUpperCase": false,
 		"fileCapitalized": false,
