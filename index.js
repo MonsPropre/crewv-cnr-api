@@ -102,6 +102,15 @@ app.get('/stayalive', (req, res) => {
 	});
 });
 
+app.get('/region', (req, res) => {
+	const region = req.headers['x-vercel-id'];
+
+	res.json({
+		region,
+		message: 'Should start with fra1'
+	})
+});
+
 app.get('/', (req, res) => {
 	res.json({
 		name: "Unofficial CnR API",
