@@ -101,22 +101,16 @@ app.get('/stayalive', (req, res) => {
 	});
 });
 
-app.get('/region', (req, res) => {
+app.get('/', (req, res) => {
 	const region = req.headers['x-vercel-id'];
 
-	res.json({
-		region,
-		message: 'Should start with fra1'
-	})
-});
-
-app.get('/', (req, res) => {
 	res.json({
 		name: "Unofficial CnR API",
 		description: "Welcome!",
 		documentation: "Coming soon",
 		version: "1.0.0",
 		apiEndpoint: '/',
+		region,
 		requestId: req.customReqId,
 		timestamp: new Date().toISOString()
 	});
