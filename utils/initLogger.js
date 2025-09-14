@@ -1,6 +1,6 @@
 import path from "path";
 import chalk from "chalk";
-import { fileURLToPath } from 'url';
+import {fileURLToPath} from 'url';
 
 function formatSegment(segment, {fileUpperCase, fileCapitalized}) {
 	if (fileUpperCase) {
@@ -11,17 +11,7 @@ function formatSegment(segment, {fileUpperCase, fileCapitalized}) {
 	return segment;
 }
 
-const __filename = fileURLToPath(import.meta.url);
-
-function getPrefix({
-					   showDate,
-					   showFile,
-					   showRelativePath,
-					   fileUpperCase,
-					   fileCapitalized,
-					   projectRoot,
-					   loggerFile
-				   }) {
+function getPrefix({showDate, showFile, showRelativePath, fileUpperCase, fileCapitalized, projectRoot, loggerFile}) {
 	let prefix = '';
 
 	if (showDate) {
@@ -105,7 +95,7 @@ export function initLogger({
 	const origLog = console.log;
 	const origError = console.error;
 	const projectRoot = process.cwd();
-	const loggerFile = path.basename(__filename);
+	const loggerFile = path.basename(fileURLToPath(import.meta.url));
 
 	function customLog(origFn, ...args) {
 		let prefix;

@@ -375,7 +375,7 @@ export class DatabaseService {
 				try {
 					const chunkResults = await this.prisma.$transaction(
 						chunk.map(playerData => {
-							const {Uid, Username, Crew, sId, Timestamp} = playerData;
+							const {Uid, Username, Crew, Timestamp} = playerData;
 
 							if (!Uid) {
 								throw new Error(`UID is required for player: ${JSON.stringify(playerData)}`);
@@ -500,10 +500,10 @@ export class DatabaseService {
 		}
 	}
 
-	async upsertPlayers(playersData) {
-		console.log(`${chalk.black.bgYellow("[PRISMA]")} - Using legacy upsertPlayers method. Consider using optimized methods.`);
-		return await this.upsertPlayersTransaction(playersData);
-	}
+	// async upsertPlayers(playersData) {
+	// 	console.log(`${chalk.black.bgYellow("[PRISMA]")} - Using legacy upsertPlayers method. Consider using optimized methods.`);
+	// 	return await this.upsertPlayersTransaction(playersData);
+	// }
 }
 
 export default DatabaseService;
