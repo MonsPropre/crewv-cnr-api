@@ -81,6 +81,15 @@ paths:
       tags:
         - Players
       parameters:
+        - name: Content-Type
+          in: header
+          description: Content type
+          required: true
+          schema:
+            type: string
+            default: application/json
+            enum:
+              - application/json
         - name: id
           in: query
           description: Numeric ID of the player in the database
