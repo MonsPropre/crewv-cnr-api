@@ -18,19 +18,17 @@ function ipLogger(req, res, next) {
 		req.headers['x-real-ip'] ||
 		req.connection.remoteAddress ||
 		'anonymous'
+
 	let masked = '';
 	if (ip) {
 		if (ip.includes('.')) {
 			const blocks = ip.split('.');
-			masked = `${blocks[0]}.${"▮".repeat(blocks[1].length).slice(0, 3)} .${"▮".repeat(blocks[2].length).slice(0, 3)} .${blocks[blocks.length - 1]}`;
+			masked = `${blocks[0]}.▮.▮.${blocks[blocks.length - 1]}`;
 		} else if (ip.includes(':')) {
 			const blocks = ip.split(':').filter(Boolean);
-			masked =
-				`${blocks[0]}:` +
-				blocks.slice(1, -1).map(() => '▮').join(':') +
-				`:${blocks[blocks.length - 1]}`;
+			masked = `${blocks[0]}:${blocks.slice(1, -1).map(() => '▮').join(':')}:${blocks[blocks.length - 1]}`;
 		} else {
-			masked = ip;
+			masked = "[Not Handled]";
 		}
 	}
 
@@ -64,6 +62,7 @@ const RateLimit = async (req, res, next) => {
 		req.headers['x-real-ip'] ||
 		req.connection.remoteAddress ||
 		'127.0.0.1';
+
 	const {success, reset} = await ratelimit.limit(ip);
 	if (!success) {
 		const retryAfter = Math.floor((reset - Date.now()) / 1000);
@@ -88,13 +87,10 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
-// app.use('/', router);
-
 app.get("/players/info", async (req, res) => {
 	const {id, uid, username} = req.query;
 	const dbService = new DatabaseService();
 
-	// Validate that at least one search parameter is provided
 	if (!id && !uid && !username) {
 		return res.status(400).json({
 			error: "Please specify either 'id', 'uid', or 'username' for the search."
@@ -102,7 +98,6 @@ app.get("/players/info", async (req, res) => {
 	}
 
 	try {
-		// Build where clause with proper validation
 		const where = {};
 
 		if (id) {
@@ -115,30 +110,21 @@ app.get("/players/info", async (req, res) => {
 			where.id = numericId;
 		}
 
-		if (uid) {
-			// Add basic uid validation if needed
-			where.Uid = uid;
-		}
+		if (uid) where.Uid = uid;
 
-		if (username) {
-			// Add basic username validation if needed
-			where.Username = username;
-		}
+		if (username) where.Username = username;
 
-		// Execute both queries
 		const [players, lastFetchData] = await Promise.all([
 			dbService.searchPlayers(where),
 			dbService.getLastFetch()
 		]);
 
-		// Structure the response clearly
 		const response = {
 			...players[0],
 			lastFetch: lastFetchData?.lastFetch || null
 		};
 
 		res.status(200).json(response);
-
 	} catch (error) {
 		console.error('Error in /players/info endpoint:', error);
 		res.status(500).json({
@@ -205,189 +191,6 @@ app.listen(PORT, () => {
 	console.log(`API available on http://localhost:${PORT}/api`);
 });
 
-// class PlayerDataProcessor {
-// 	constructor() {
-// 		this.dbService = new DatabaseService();
-// 		this.fetcher = new ApiFetcher();
-// 		this.processLock = new ProcessLock();
-// 		this.urlsConfig = [
-// 			{sId: 'US1', url: 'https://api.gtacnr.net/cnr/players?serverId=US1'},
-// 			{sId: 'US2', url: 'https://api.gtacnr.net/cnr/players?serverId=US2'},
-// 			{sId: 'EU1', url: 'https://api.gtacnr.net/cnr/players?serverId=EU1'},
-// 			{sId: 'EU2', url: 'https://api.gtacnr.net/cnr/players?serverId=EU2'},
-// 			{sId: 'SEA', url: 'https://sea.gtacnr.net/cnr/players?serverId=SEA'}
-// 		];
-// 		this.task = null;
-// 		this.isProcessing = false;
-// 	}
-//
-// 	async processPlayers() {
-// 		if (this.isProcessing) {
-// 			console.log(
-// 				`${chalk.yellow('[SKIP]')} - Skipping execution - previous task still running`
-// 			);
-// 			return {skipped: true};
-// 		}
-//
-// 		const lockId = this.processLock.acquire('player-data-fetch');
-// 		console.log(`${chalk.blue('[LOCK]')} - Acquired lock: ${lockId}`);
-//
-// 		this.isProcessing = true;
-//
-// 		const invalidPlayers = [];
-// 		const startTime = Date.now();
-//
-// 		try {
-// 			await this.dbService.connect();
-//
-// 			const fetchStart = Date.now();
-// 			this.fetcher.setUrls(this.urlsConfig);
-// 			this.fetcher.setName('CnRAPI');
-// 			const results = await this.fetcher.fetchAllWithDelay();
-// 			const fetchTime = Date.now() - fetchStart;
-// 			console.log(`${chalk.blue('[TIMING]')} - API fetch: ${fetchTime}ms`);
-//
-// 			const transformStart = Date.now();
-// 			const transformedPlayers = await Promise.all(
-// 				results.data.map(async (player, index) => {
-// 					try {
-// 						if (!player?.Uid) {
-// 							invalidPlayers.push({
-// 								index,
-// 								reason: !player ? 'Null player' : 'Missing Uid',
-// 								serverId: player?.sId || 'Unknown',
-// 								username: player?.Username?.Username || 'Unknown'
-// 							});
-// 							return null;
-// 						}
-//
-// 						const username = player.Username?.Username || '';
-// 						const crewResult = await checkCrew(username);
-//
-// 						return {
-// 							Uid: player.Uid,
-// 							Username: username,
-// 							Crew: crewResult?.crewName || null,
-// 							sId: player.sId,
-// 							Timestamp: player.Username?.Timestamp ? new Date(player.Username.Timestamp) : null
-// 						};
-// 					} catch (error) {
-// 						invalidPlayers.push({
-// 							index,
-// 							reason: `Transform error: ${error.message}`,
-// 							serverId: player?.sId || 'Unknown',
-// 							username: player?.Username?.Username || 'Unknown'
-// 						});
-// 						return null;
-// 					}
-// 				})
-// 			);
-//
-// 			const validPlayers = transformedPlayers.filter(Boolean);
-// 			const transformTime = Date.now() - transformStart;
-// 			console.log(`${chalk.blue('[TIMING]')} - Data transform: ${transformTime}ms`);
-//
-// 			if (validPlayers.length === 0) {
-// 				console.warn(`No valid players to process`);
-// 				return this.logResults(0, invalidPlayers.length, 0);
-// 			}
-//
-// 			const dbStart = Date.now();
-// 			try {
-// 				let method;
-// 				if (validPlayers.length > 500) {
-// 					method = 'upsertPlayersOptimizedNative';
-// 				} else if (validPlayers.length > 100) {
-// 					method = 'bulkUpsertPlayers';
-// 				} else if (validPlayers.length > 50) {
-// 					method = 'upsertPlayersOptimized';
-// 				} else {
-// 					method = 'upsertPlayersTransaction';
-// 				}
-//
-// 				console.log(`${chalk.blue('[METHOD]')} - Using ${method} for ${validPlayers.length} players`);
-// 				await this.dbService[method](validPlayers);
-// 				await this.dbService.upsertLastFetch();
-// 			} catch (error) {
-// 				console.error(`Upsert error:`, error.message);
-//
-// 				console.log(`${chalk.yellow('[FALLBACK]')} - Trying fallback method`);
-// 				try {
-// 					await this.dbService.upsertPlayersTransaction(validPlayers);
-// 					await this.dbService.upsertLastFetch();
-// 				} catch (fallbackError) {
-// 					console.error(`Fallback error:`, fallbackError.message);
-// 				}
-// 			}
-//
-// 			const dbTime = Date.now() - dbStart;
-// 			console.log(`${chalk.blue('[TIMING]')} - Database upsert: ${dbTime}ms`);
-//
-// 			const processingTime = Date.now() - startTime;
-// 			console.log(`${chalk.green('[TOTAL]')} - Total processing time: ${processingTime}ms (Fetch: ${fetchTime}ms, Transform: ${transformTime}ms, DB: ${dbTime}ms)`);
-//
-// 			return this.logResults(validPlayers.length, invalidPlayers.length, processingTime);
-//
-// 		} catch (error) {
-// 			console.error(`Processing error:`, error.message);
-// 			return {error: error.message, invalidPlayers};
-// 		} finally {
-// 			try {
-// 				await this.dbService.disconnect();
-// 			} catch (error) {
-// 				console.error(`Disconnect error:`, error.message);
-// 			}
-//
-// 			this.isProcessing = false;
-//
-// 			this.processLock.release(lockId);
-// 			console.log(`${chalk.blue('[UNLOCK]')} - Released lock: ${lockId}`);
-// 		}
-// 	}
-//
-// 	logResults(validCount, invalidCount, processingTime) {
-// 		if (invalidCount > 0) {
-// 			console.log(`${invalidCount} players had issues`);
-// 		}
-//
-// 		return {validCount, invalidCount, processingTime};
-// 	}
-//
-// 	start() {
-// 		console.log(`Starting player data processor (every minute)`);
-//
-// 		this.processPlayers();
-//
-// 		this.task = cron.schedule('* * * * *', async () => {
-// 			await this.processPlayers();
-// 		}, {
-// 			scheduled: false,
-// 			timezone: 'Europe/Paris'
-// 		});
-//
-// 		this.task.start();
-// 	}
-//
-// 	stop() {
-// 		if (this.task) {
-// 			this.task.stop();
-// 			this.task.destroy();
-// 			this.task = null;
-// 			console.log(`Player data processor stopped`);
-// 		}
-//
-// 		this.isProcessing = false;
-// 	}
-//
-// 	getStatus() {
-// 		return {
-// 			isRunning: this.task && this.task.getStatus() === 'scheduled',
-// 			isProcessing: this.isProcessing,
-// 			activeLocks: this.processLock.getActiveLocks()
-// 		};
-// 	}
-// }
-
 (async () => {
 	initLogger({
 		"enabled": true,
@@ -408,6 +211,3 @@ process.on('uncaughtException', async (error) => {
 process.on('unhandledRejection', async (reason) => {
 	console.error(`Unhandled Rejection:`, reason);
 });
-
-// const processor = new PlayerDataProcessor();
-// processor.start();
