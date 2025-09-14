@@ -1,6 +1,11 @@
 # Code Backup
 index.backup.js
 
+# Unused files and folders
+functions/
+class/
+router.js
+
 # Variables d'environnement - CRITIQUE pour Prisma
 .env
 
