@@ -1,15 +1,11 @@
-import cron from 'node-cron';
-import {ApiFetcher} from "./class/ApiFetcher.js";
 import {DatabaseService} from "./database/index.js";
-import {checkCrew} from "./functions/checkCrew.js";
 import chalk from "chalk";
 import initLogger from "./utils/initLogger.js";
 import crypto from "crypto";
-import {ProcessLock} from "./class/ProcessLock.js";
 import {getEnv} from '@vercel/functions';
 
 import express from 'express';
-import router from './router.js';
+import cors from 'cors';
 
 import {Ratelimit} from "@upstash/ratelimit";
 import {Redis} from "@upstash/redis";
@@ -83,6 +79,7 @@ const RateLimit = async (req, res, next) => {
 };
 
 app.use(RateLimit);
+app.use(cors());
 
 app.use((req, res, next) => {
 	ipLogger(req, res, next);
