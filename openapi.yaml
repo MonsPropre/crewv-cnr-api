@@ -97,7 +97,7 @@ paths:
           schema:
             type: integer
             minimum: 1
-          example: 11086
+          example: 24386
         - name: uid
           in: query
           description: Unique UID of the player
