@@ -25,6 +25,14 @@ paths:
       operationId: getApiInfo
       tags:
         - API Info
+      parameters:
+        - name: Accept
+          in: header
+          schema:
+            type: string
+            default: application/json
+            enum:
+              - application/json
       responses:
         '200':
           description: API information retrieved successfully
@@ -83,8 +91,6 @@ paths:
       parameters:
         - name: Accept
           in: header
-          description: Content type
-          required: true
           schema:
             type: string
             default: application/json
