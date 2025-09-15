@@ -66,9 +66,11 @@ const RateLimit = async (req, res, next) => {
 	const {success, reset} = await ratelimit.limit(ip);
 	if (!success) {
 		const retryAfter = Math.floor((reset - Date.now()) / 1000);
+		console.log(retryAfter);
 		return res
-			.sendStatus(429)
+			.status(429)
 			.set("Retry-After", String(retryAfter))
+			.end();
 	}
 	next();
 };
