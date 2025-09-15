@@ -28,6 +28,7 @@ paths:
       parameters:
         - name: Accept
           in: header
+          required: true
           schema:
             type: string
             default: application/json
@@ -91,6 +92,7 @@ paths:
       parameters:
         - name: Accept
           in: header
+          required: true
           schema:
             type: string
             default: application/json
