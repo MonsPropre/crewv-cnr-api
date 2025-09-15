@@ -67,8 +67,8 @@ const RateLimit = async (req, res, next) => {
 	if (!success) {
 		const retryAfter = Math.floor((reset - Date.now()) / 1000);
 		return res
-			.status(429)
-			.set("Retry-After", String(retryAfter));
+			.sendStatus(429)
+			.set("Retry-After", String(retryAfter))
 	}
 	next();
 };
