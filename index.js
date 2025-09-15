@@ -68,11 +68,7 @@ const RateLimit = async (req, res, next) => {
 		const retryAfter = Math.floor((reset - Date.now()) / 1000);
 		return res
 			.status(429)
-			.set("Retry-After", String(retryAfter))
-			.json({
-				error: "COOLDOWN",
-				message: `Please wait ${Math.abs(retryAfter)} seconds before making another request.`
-			});
+			.set("Retry-After", String(retryAfter));
 	}
 	next();
 };
