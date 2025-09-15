@@ -14,7 +14,7 @@ info:
     name: MIT
 
 servers:
-  - url: https://crewvapi.vercel.app
+  - url: https://crewv.cbsp-cnr.eu
     description: Production server
 
 paths:
@@ -50,7 +50,7 @@ paths:
                     example: "/"
                   region:
                     type: string
-                    description: Name of the Vercel region where the API is deployed
+                    description: Name of the Vercel region where the API is deployed (if deployed on Vercel)
                     example: "eu-west-1"
                   requestId:
                     type: string
@@ -251,5 +251,5 @@ tags:
     description: Player management and search
 
 externalDocs:
-  description: Complete documentation (coming soon)
-  url: https://gitbook.com/crewv
+  description: Documentation
+  url: https://c5-docs.cbsp-cnr.eu/
