@@ -172,12 +172,10 @@ app.use((req, res) => {
 	});
 });
 
-// app.listen(PORT, () => {
-// 	console.log(`Ready on port ${PORT}`);
-// 	console.log(`API available on http://localhost:${PORT}/api`);
-// });
-
-export default app;
+app.listen(PORT, () => {
+	console.log(`Ready on port ${PORT}`);
+	console.log(`API available on http://localhost:${PORT}/api`);
+});
 
 (async () => {
 	initLogger({
