@@ -6,8 +6,7 @@ import {getEnv} from '@vercel/functions';
 
 import express from 'express';
 import cors from 'cors';
-import Redis from "./class/Redis.js";
-import Ratelimit from "./class/Ratelimit.js";
+import redis from "./utils/redis.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,7 +15,7 @@ function ipLogger(req, res, next) {
 	const ip = req.headers['x-forwarded-for'] ||
 		req.headers['x-real-ip'] ||
 		req.connection.remoteAddress ||
-		'anonymous'
+		'anonymous';
 
 	let masked = '';
 	if (ip) {
@@ -31,31 +30,19 @@ function ipLogger(req, res, next) {
 		}
 	}
 
-	const success = res.statusCode < 400;
 	req.customReqId = crypto.randomBytes(6).toString('hex');
 
-	console.log(
-		`${success ? chalk.green.bold(`[${req.method}] [${req.customReqId}] [${res.statusCode}]`) : chalk.red.bold(`[${req.method}] [${req.customReqId}] [${res.statusCode}]`)} ${chalk.yellow(`${req.originalUrl} - IP: ${masked}`)}`
-	);
+	// Hook dans l'événement de fin de réponse pour logger après l'envoi
+	res.on('finish', () => {
+		const success = res.statusCode < 400;
+		console.log(
+			`${success ? chalk.green.bold(`[${req.method}] [${req.customReqId}] [${res.statusCode}]`) : chalk.red.bold(`[${req.method}] [${req.customReqId}] [${res.statusCode}]`)} ${chalk.yellow(`${req.originalUrl} - IP: ${masked}`)}`
+		);
+	});
 
-	if (typeof next === 'function' && success) {
-		return next();
-	}
-	return success;
+	// Toujours appeler next() pour continuer la chaîne de middlewares
+	next();
 }
-
-const redis = new Redis({
-	host: process.env.REDIS_HOST || 'localhost',
-	port: process.env.REDIS_PORT || 6379,
-	password: process.env.REDIS_PASSWORD || undefined,
-	db: process.env.REDIS_DB || 0
-});
-
-const ratelimit = new Ratelimit({
-	redis,
-	limiter: Ratelimit.slidingWindow(1, "1 s"),
-	prefix: "cnrapi/ratelimit",
-});
 
 const RateLimit = async (req, res, next) => {
 	const ip = req.headers['x-forwarded-for'] ||
@@ -63,25 +50,25 @@ const RateLimit = async (req, res, next) => {
 		req.connection.remoteAddress ||
 		'127.0.0.1';
 
-	const {success, reset} = await ratelimit.limit(ip);
+	const requests = await redis.incr(ip);
+	if (requests === 1) {
+		await redis.expire(ip, 1);
+	}
 
-	if (!success) {
-		const retryAfter = Math.floor((reset - Date.now()) / 1000);
+	if (requests > 1) {
 		return res
 			.status(429)
-			.set("Retry-After", String(retryAfter))
+			.set("Retry-After", 1)
 			.end();
 	}
 
 	next();
 };
 
+// Ordre important : ipLogger doit être placé avant RateLimit
+app.use(ipLogger);
 app.use(RateLimit);
 app.use(cors());
-
-app.use((req, res, next) => {
-	ipLogger(req, res, next);
-});
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
