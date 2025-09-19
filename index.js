@@ -6,9 +6,8 @@ import {getEnv} from '@vercel/functions';
 
 import express from 'express';
 import cors from 'cors';
-
-import {Ratelimit} from "@upstash/ratelimit";
-import {Redis} from "@upstash/redis";
+import Redis from "./class/Redis.js";
+import Ratelimit from "./class/Ratelimit.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,15 +45,16 @@ function ipLogger(req, res, next) {
 }
 
 const redis = new Redis({
-	url: process.env.UPSTASH_REDIS_REST_URL,
-	token: process.env.UPSTASH_REDIS_REST_TOKEN,
+	host: process.env.REDIS_HOST || 'localhost',
+	port: process.env.REDIS_PORT || 6379,
+	password: process.env.REDIS_PASSWORD || undefined,
+	db: process.env.REDIS_DB || 0
 });
 
 const ratelimit = new Ratelimit({
-	redis: redis,
+	redis,
 	limiter: Ratelimit.slidingWindow(1, "1 s"),
-	analytics: true,
-	prefix: "@upstash/ratelimit",
+	prefix: "cnrapi/ratelimit",
 });
 
 const RateLimit = async (req, res, next) => {
@@ -64,6 +64,7 @@ const RateLimit = async (req, res, next) => {
 		'127.0.0.1';
 
 	const {success, reset} = await ratelimit.limit(ip);
+
 	if (!success) {
 		const retryAfter = Math.floor((reset - Date.now()) / 1000);
 		return res
@@ -71,6 +72,7 @@ const RateLimit = async (req, res, next) => {
 			.set("Retry-After", String(retryAfter))
 			.end();
 	}
+
 	next();
 };
 

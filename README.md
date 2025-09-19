@@ -18,6 +18,7 @@ All database updates are handled by the CrewV Bot.
 Please note that the following features are currently not implemented:
 
 - Fetch system in the project
+- 1req/sec/ip
 
 ## Usage
 
