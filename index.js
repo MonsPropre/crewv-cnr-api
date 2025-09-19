@@ -43,6 +43,8 @@ function ipLogger(req, res, next) {
 	next();
 }
 
+console.log(process.env.REDIS_URL);
+
 // const RateLimit = async (req, res, next) => {
 // 	const ip = req.headers['x-forwarded-for'] ||
 // 		req.headers['x-real-ip'] ||
