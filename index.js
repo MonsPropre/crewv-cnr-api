@@ -2,7 +2,6 @@ import {DatabaseService} from "./database/index.js";
 import chalk from "chalk";
 import initLogger from "./utils/initLogger.js";
 import crypto from "crypto";
-import {getEnv} from '@vercel/functions';
 
 import express from 'express';
 import cors from 'cors';
@@ -128,36 +127,12 @@ app.get('/stayalive', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-	const {VERCEL_REGION} = getEnv();
-	const regions = {
-		"arn1": {name: "eu-north-1", loc: "Stockholm, Sweden"},
-		"bom1": {name: "ap-south-1", loc: "Mumbai, India"},
-		"cdg1": {name: "eu-west-3", loc: "Paris, France"},
-		"cle1": {name: "us-east-2", loc: "Cleveland, USA"},
-		"cpt1": {name: "af-south-1", loc: "Cape Town, South Africa"},
-		"dub1": {name: "eu-west-1", loc: "Dublin, Ireland"},
-		"dxb1": {name: "me-central-1", loc: "Dubai, United Arab Emirates"},
-		"fra1": {name: "eu-central-1", loc: "Frankfurt, Germany"},
-		"gru1": {name: "sa-east-1", loc: "São Paulo, Brazil"},
-		"hkg1": {name: "ap-east-1", loc: "Hong Kong"},
-		"hnd1": {name: "ap-northeast-1", loc: "Tokyo, Japan"},
-		"iad1": {name: "us-east-1", loc: "Washington, D.C., USA"},
-		"icn1": {name: "ap-northeast-2", loc: "Seoul, South Korea"},
-		"kix1": {name: "ap-northeast-3", loc: "Osaka, Japan"},
-		"lhr1": {name: "eu-west-2", loc: "London, United Kingdom"},
-		"pdx1": {name: "us-west-2", loc: "Portland, USA"},
-		"sfo1": {name: "us-west-1", loc: "San Francisco, USA"},
-		"sin1": {name: "ap-southeast-1", loc: "Singapore"},
-		"syd1": {name: "ap-southeast-2", loc: "Sydney, Australia"}
-	}
-
 	res.json({
 		name: "CrewV CnR API",
 		description: "Welcome!",
 		documentation: "Coming soon",
 		version: "1.0.0",
 		apiEndpoint: '/',
-		region: regions[VERCEL_REGION]?.name || null,
 		requestId: req.customReqId,
 		timestamp: new Date().toISOString()
 	});
