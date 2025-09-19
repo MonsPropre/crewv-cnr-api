@@ -43,30 +43,29 @@ function ipLogger(req, res, next) {
 	next();
 }
 
-const RateLimit = async (req, res, next) => {
-	const ip = req.headers['x-forwarded-for'] ||
-		req.headers['x-real-ip'] ||
-		req.connection.remoteAddress ||
-		'127.0.0.1';
+// const RateLimit = async (req, res, next) => {
+// 	const ip = req.headers['x-forwarded-for'] ||
+// 		req.headers['x-real-ip'] ||
+// 		req.connection.remoteAddress ||
+// 		'127.0.0.1';
+//
+// 	const requests = await redis.incr(ip);
+// 	if (requests === 1) {
+// 		await redis.expire(ip, 1);
+// 	}
+//
+// 	if (requests > 1) {
+// 		return res
+// 			.status(429)
+// 			.set("Retry-After", 1)
+// 			.end();
+// 	}
+//
+// 	next();
+// };
 
-	const requests = await redis.incr(ip);
-	if (requests === 1) {
-		await redis.expire(ip, 1);
-	}
-
-	if (requests > 1) {
-		return res
-			.status(429)
-			.set("Retry-After", 1)
-			.end();
-	}
-
-	next();
-};
-
-// Ordre important : ipLogger doit être placé avant RateLimit
 app.use(ipLogger);
-app.use(RateLimit);
+// app.use(RateLimit);
 app.use(cors());
 
 app.use(express.json());
