@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 import express from 'express';
 import cors from 'cors';
-import redis from "./utils/redis.js";
+// import redis from "./utils/redis.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
