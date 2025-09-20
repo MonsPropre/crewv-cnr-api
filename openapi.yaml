@@ -84,7 +84,7 @@ paths:
     get:
       summary: Search Player Information
       description: |
-        Search for a player by ID, UID, or username.
+        Search for a player by UID, or username.
         At least one parameter must be provided.
       operationId: getPlayerInfo
       tags:
@@ -98,14 +98,6 @@ paths:
             default: application/json
             enum:
               - application/json
-        - name: id
-          in: query
-          description: Numeric ID of the player in the database
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-          example: 24386
         - name: uid
           in: query
           description: Unique UID of the player
@@ -159,7 +151,6 @@ paths:
                       example: "2025-09-13T00:02:05.723Z"
 
                   required:
-                    - id
                     - Uid
                     - Username
         '400':
