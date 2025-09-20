@@ -10,6 +10,20 @@ import cors from 'cors';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Test de debug pour voir les headers
+app.get('/debug-ip', (req, res) => {
+	res.json({
+		ip: req.ip,
+		ips: req.ips,
+		headers: {
+			'x-forwarded-for': req.headers['x-forwarded-for'],
+			'x-real-ip': req.headers['x-real-ip'],
+			'x-forwarded-proto': req.headers['x-forwarded-proto']
+		},
+		connection: req.connection.remoteAddress
+	});
+});
+
 function ipLogger(req, res, next) {
 	const ip = req.headers['x-forwarded-for'] ||
 		req.headers['x-real-ip'] ||
@@ -45,6 +59,24 @@ function ipLogger(req, res, next) {
 
 console.log(process.env.REDIS_URL);
 
+<<<<<<< HEAD
+	console.log(req.customReqId, ip);
+
+	const requests = await redis.incr(ip);
+	if (requests === 1) {
+		await redis.expire(ip, 1);
+	}
+
+	if (requests > 1) {
+		return res
+			.status(429)
+			.set("Retry-After", 1)
+			.end();
+	}
+
+	next();
+};
+=======
 // const RateLimit = async (req, res, next) => {
 // 	const ip = req.headers['x-forwarded-for'] ||
 // 		req.headers['x-real-ip'] ||
@@ -65,6 +97,9 @@ console.log(process.env.REDIS_URL);
 //
 // 	next();
 // };
+>>>>>>> parent of 5b8d0cd (..)
+
+app.set('trust proxy', ["10.0.3.0/24"]);
 
 app.use(ipLogger);
 // app.use(RateLimit);
