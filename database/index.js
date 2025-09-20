@@ -144,14 +144,8 @@ export class DatabaseService {
 		try {
 			const whereClause = {};
 
-			if (filters.id) {
-				whereClause.id = filters.id;
-			}
-
 			if (filters.Username) {
-				whereClause.Username = {
-					contains: filters.Username
-				};
+				whereClause.Username = filters.Username;
 			}
 
 			if (filters.Uid) {

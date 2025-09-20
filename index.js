@@ -6,6 +6,7 @@ import crypto from "crypto";
 import express from 'express';
 import cors from 'cors';
 import redis from "./utils/redis.js";
+import path from "path";
 // import redis from "./utils/redis.js";
 
 const app = express();
@@ -23,6 +24,10 @@ app.get('/debug-ip', (req, res) => {
 		},
 		connection: req.connection.remoteAddress
 	});
+});
+
+app.get('/favicon.ico', (req, res) => {
+	res.status(404).end();
 });
 
 function ipLogger(req, res, next) {
@@ -88,30 +93,52 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 app.get("/players/info", async (req, res) => {
-	const {id, uid, username} = req.query;
+	const {uid, username} = req.query;
+	const startTime = performance.now();
 	const dbService = new DatabaseService();
 
-	if (!id && !uid && !username) {
+	if (!uid && !username) {
 		return res.status(400).json({
-			error: "Please specify either 'id', 'uid', or 'username' for the search."
+			error: "Please specify either 'uid', or 'username' for the search."
 		});
 	}
 
 	try {
-		const where = {};
+		let cacheKey = null;
+		let searchField = null;
+		let searchValue = null;
 
-		if (id) {
-			const numericId = Number(id);
-			if (isNaN(numericId)) {
-				return res.status(400).json({
-					error: "Invalid 'id' parameter. Must be a number."
-				});
-			}
-			where.id = numericId;
+		if (uid) {
+			cacheKey = `players:uid:${uid}`;
+			searchField = 'uid';
+			searchValue = uid;
+		} else if (username) {
+			cacheKey = `players:username:${username}`;
+			searchField = 'username';
+			searchValue = username;
 		}
 
-		if (uid) where.Uid = uid;
+		const [cachedData, ttl] = await Promise.all([
+			redis.get(cacheKey),
+			redis.ttl(cacheKey)
+		]);
 
+		if (cachedData) {
+			const endTime = performance.now();
+			const duration = (endTime - startTime).toFixed(2);
+
+			const response = {
+				...JSON.parse(cachedData),
+				ping: duration,
+				cached: true,
+				ttl
+			};
+
+			return res.status(200).json(response);
+		}
+
+		const where = {};
+		if (uid) where.Uid = uid;
 		if (username) where.Username = username;
 
 		const [players, lastFetchData] = await Promise.all([
@@ -119,12 +146,46 @@ app.get("/players/info", async (req, res) => {
 			dbService.getLastFetch()
 		]);
 
-		const response = {
+		if (!players || players.length === 0) {
+			return res.status(404).json({
+				error: "Player not found."
+			});
+		}
+
+		const endTime = performance.now();
+		const duration = (endTime - startTime).toFixed(2);
+
+		const playerData = {
 			...players[0],
 			lastFetch: lastFetchData?.lastFetch || null
 		};
 
+		const response = {
+			...playerData,
+			ping: duration,
+			cached: false
+		};
+
+		// Mettre en cache avec toutes les clés possibles pour ce joueur
+		const cacheData = JSON.stringify(playerData);
+		const cachePromises = [];
+
+		// Cache par tous les identifiants disponibles du joueur
+		if (players[0].id) {
+			cachePromises.push(redis.set(`players:id:${players[0].id}`, cacheData, "EX", 60));
+		}
+		if (players[0].Uid) {
+			cachePromises.push(redis.set(`players:uid:${players[0].Uid}`, cacheData, "EX", 60));
+		}
+		if (players[0].Username) {
+			cachePromises.push(redis.set(`players:username:${players[0].Username}`, cacheData, "EX", 60));
+		}
+
+		// Exécuter tous les cache en parallèle
+		await Promise.all(cachePromises);
+
 		res.status(200).json(response);
+
 	} catch (error) {
 		console.error('Error in /players/info endpoint:', error);
 		res.status(500).json({
