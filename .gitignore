@@ -5,6 +5,7 @@ index.backup.js
 functions/
 class/
 router.js
+redisTest.js
 
 # Variables d'environnement - CRITIQUE pour Prisma
 .env
@@ -46,4 +47,3 @@ out/
 ehthumbs.db
 Thumbs.db
 .vercel
-redisTest.js
