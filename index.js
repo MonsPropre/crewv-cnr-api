@@ -12,20 +12,6 @@ import path from "path";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Test de debug pour voir les headers
-app.get('/debug-ip', (req, res) => {
-	res.json({
-		ip: req.ip,
-		ips: req.ips,
-		headers: {
-			'x-forwarded-for': req.headers['x-forwarded-for'],
-			'x-real-ip': req.headers['x-real-ip'],
-			'x-forwarded-proto': req.headers['x-forwarded-proto']
-		},
-		connection: req.connection.remoteAddress
-	});
-});
-
 app.get('/favicon.ico', (req, res) => {
 	res.status(404).end();
 });
@@ -127,8 +113,19 @@ app.get("/players/info", async (req, res) => {
 			const endTime = performance.now();
 			const duration = (endTime - startTime).toFixed(2);
 
+			// Vérifier si c'est un cache négatif (404)
+			const parsedData = JSON.parse(cachedData);
+			if (parsedData.error) {
+				return res.status(404).json({
+					...parsedData,
+					ping: duration,
+					cached: true,
+					ttl
+				});
+			}
+
 			const response = {
-				...JSON.parse(cachedData),
+				...parsedData,
 				ping: duration,
 				cached: true,
 				ttl
@@ -146,14 +143,23 @@ app.get("/players/info", async (req, res) => {
 			dbService.getLastFetch()
 		]);
 
-		if (!players || players.length === 0) {
-			return res.status(404).json({
-				error: "Player not found."
-			});
-		}
-
 		const endTime = performance.now();
 		const duration = (endTime - startTime).toFixed(2);
+
+		if (!players || players.length === 0) {
+			const notFoundResponse = {
+				error: "Player not found.",
+				ping: duration,
+				cached: false
+			};
+
+			// Cache seulement les données nécessaires (sans ping et cached)
+			await redis.set(cacheKey, JSON.stringify({
+				error: "Player not found."
+			}), "EX", 60);
+
+			return res.status(404).json(notFoundResponse);
+		}
 
 		const playerData = {
 			...players[0],
@@ -166,11 +172,9 @@ app.get("/players/info", async (req, res) => {
 			cached: false
 		};
 
-		// Mettre en cache avec toutes les clés possibles pour ce joueur
 		const cacheData = JSON.stringify(playerData);
 		const cachePromises = [];
 
-		// Cache par tous les identifiants disponibles du joueur
 		if (players[0].id) {
 			cachePromises.push(redis.set(`players:id:${players[0].id}`, cacheData, "EX", 60));
 		}
@@ -181,7 +185,6 @@ app.get("/players/info", async (req, res) => {
 			cachePromises.push(redis.set(`players:username:${players[0].Username}`, cacheData, "EX", 60));
 		}
 
-		// Exécuter tous les cache en parallèle
 		await Promise.all(cachePromises);
 
 		res.status(200).json(response);
@@ -219,7 +222,7 @@ app.use((req, res) => {
 		error: 'Route not found',
 		path: req.originalUrl,
 		method: req.method,
-		timestamp: new Date().toISOString()
+		timestamp: new Date().toISOString(),
 	});
 });
 
