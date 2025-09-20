@@ -5,6 +5,7 @@ import crypto from "crypto";
 
 import express from 'express';
 import cors from 'cors';
+import redis from "./utils/redis.js";
 // import redis from "./utils/redis.js";
 
 const app = express();
@@ -53,14 +54,14 @@ function ipLogger(req, res, next) {
 		);
 	});
 
-	// Toujours appeler next() pour continuer la chaîne de middlewares
 	next();
 }
 
-console.log(process.env.REDIS_URL);
-
-<<<<<<< HEAD
-	console.log(req.customReqId, ip);
+const RateLimit = async (req, res, next) => {
+	const ip = req.headers['x-forwarded-for'] ||
+		req.headers['x-real-ip'] ||
+		req.connection.remoteAddress ||
+		'127.0.0.1';
 
 	const requests = await redis.incr(ip);
 	if (requests === 1) {
@@ -76,33 +77,11 @@ console.log(process.env.REDIS_URL);
 
 	next();
 };
-=======
-// const RateLimit = async (req, res, next) => {
-// 	const ip = req.headers['x-forwarded-for'] ||
-// 		req.headers['x-real-ip'] ||
-// 		req.connection.remoteAddress ||
-// 		'127.0.0.1';
-//
-// 	const requests = await redis.incr(ip);
-// 	if (requests === 1) {
-// 		await redis.expire(ip, 1);
-// 	}
-//
-// 	if (requests > 1) {
-// 		return res
-// 			.status(429)
-// 			.set("Retry-After", 1)
-// 			.end();
-// 	}
-//
-// 	next();
-// };
->>>>>>> parent of 5b8d0cd (..)
 
 app.set('trust proxy', ["10.0.3.0/24"]);
 
 app.use(ipLogger);
-// app.use(RateLimit);
+app.use(RateLimit);
 app.use(cors());
 
 app.use(express.json());
