@@ -210,6 +210,22 @@ export class DatabaseService {
 		}
 	}
 
+	// Servers
+
+	async getAllServers() {
+		try {
+			return await this.prisma.Servers.findMany();
+		} catch (error) {
+			console.error(
+				`${chalk.black.bgRed(
+					"[PRISMA]"
+				)} - Error fetching all servers:`,
+				error
+			);
+			throw error;
+		}
+	}
+
 	// Database service methods
 	async getLastFetch() {
 		try {

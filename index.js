@@ -197,6 +197,71 @@ app.get("/players/info", RateLimit, async (req, res) => {
 	}
 });
 
+app.get('/servers/info', RateLimit, async (req, res) => {
+	const startTime = performance.now();
+	const dbService = new DatabaseService();
+
+	try {
+		// Try to get data from cache first
+		const cacheKey = 'servers:all';
+		const [cachedData, ttl] = await Promise.all([
+			redis.get(cacheKey),
+			redis.ttl(cacheKey)
+		]);
+
+		if (cachedData) {
+			const endTime = performance.now();
+			const duration = (endTime - startTime).toFixed(2);
+
+			return res.status(200).json({
+				...JSON.parse(cachedData),
+				ping: duration,
+				cached: true,
+				ttl
+			});
+		}
+
+		const servers = await dbService.getAllServers();
+
+		const endTime = performance.now();
+		const duration = (endTime - startTime).toFixed(2);
+
+		if (!servers || servers.length === 0) {
+			return res.status(404).json({
+				error: "No servers found",
+				ping: duration,
+				cached: false
+			});
+		}
+
+		const response = {
+			servers: servers.map(server => ({
+				id: server.id,
+				sId: server.sId,
+				time: server.time,
+				restartAt: server.restartAt
+			})),
+			count: servers.length
+		};
+
+		// Cache the response for 60 seconds
+		await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
+
+		res.status(200).json({
+			...response,
+			ping: duration,
+			cached: false
+		});
+
+	} catch (error) {
+		console.error('Error in /servers/info endpoint:', error);
+		res.status(500).json({
+			error: "Internal server error.",
+			...(process.env.NODE_ENV === 'development' && {details: error.message})
+		});
+	}
+});
+
 app.get('/stayalive', RateLimit, (req, res) => {
 	res.json({
 		message: 'Wakey Wakey',
