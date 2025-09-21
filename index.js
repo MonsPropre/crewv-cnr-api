@@ -72,13 +72,12 @@ const RateLimit = async (req, res, next) => {
 app.set('trust proxy', ["10.0.3.0/24"]);
 
 app.use(ipLogger);
-app.use(RateLimit);
 app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
-app.get("/players/info", async (req, res) => {
+app.get("/players/info", RateLimit, async (req, res) => {
 	const {uid, username} = req.query;
 	const startTime = performance.now();
 	const dbService = new DatabaseService();
@@ -198,14 +197,14 @@ app.get("/players/info", async (req, res) => {
 	}
 });
 
-app.get('/stayalive', (req, res) => {
+app.get('/stayalive', RateLimit, (req, res) => {
 	res.json({
 		message: 'Wakey Wakey',
 		timestamp: new Date().toISOString()
 	});
 });
 
-app.get('/', (req, res) => {
+app.get('/', RateLimit, (req, res) => {
 	res.json({
 		name: "CrewV CnR API",
 		description: "Welcome!",
