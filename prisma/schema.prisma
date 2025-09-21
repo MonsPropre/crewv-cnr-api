@@ -29,6 +29,15 @@ model Players {
   @@map("Players")
 }
 
+model Servers {
+  id        Int       @id @default(autoincrement())
+  sId       String    @unique(map: "sId")
+  time      String?
+  restartAt DateTime?
+
+  @@map("Servers")
+}
+
 model SystemMetadata {
   id          Int       @id @default(autoincrement())
   key         String    @unique
