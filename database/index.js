@@ -1,6 +1,6 @@
 import pkg from "@prisma/client";
 
-const {PrismaClient} = pkg;
+const { PrismaClient } = pkg;
 import chalk from "chalk";
 
 export class DatabaseService {
@@ -95,7 +95,7 @@ export class DatabaseService {
 	async getPlayerByUid(Uid) {
 		try {
 			return await this.prisma.Players.findUnique({
-				where: {Uid: Uid}
+				where: { Uid: Uid }
 			});
 		} catch (error) {
 			console.error(
@@ -111,7 +111,7 @@ export class DatabaseService {
 	async getPlayersByUsername(Username) {
 		try {
 			return await this.prisma.Players.findMany({
-				where: {Username: Username}
+				where: { Username: Username }
 			});
 		} catch (error) {
 			console.error(
@@ -127,7 +127,7 @@ export class DatabaseService {
 	async getPlayersByCrew(Crew) {
 		try {
 			return await this.prisma.Players.findMany({
-				where: {Crew: Crew}
+				where: { Crew: Crew }
 			});
 		} catch (error) {
 			console.error(
@@ -152,10 +152,34 @@ export class DatabaseService {
 				whereClause.Uid = filters.Uid;
 			}
 
-			return await this.prisma.Players.findMany({
-				where: whereClause,
-				orderBy: filters.orderBy || {id: 'asc'}
+			const [players, servers] = await Promise.all([
+				this.prisma.Players.findMany({
+					where: whereClause,
+					orderBy: filters.orderBy || { id: 'asc' }
+				}),
+				this.prisma.Servers.findMany()
+			]);
+
+			// Mapper chaque joueur avec son serveur
+			const playersWithServer = players.map((player) => {
+				const server = servers.find((s) => {
+					const playersList = Array.isArray(s.players) ? s.players : [];
+					return playersList.some(
+						(p) => p.uid === player.Uid && p.Username === player.Username
+					);
+				});
+
+				return {
+					...player,
+					server: server?.sId === null ? null : {
+						sId: server?.sId || null,
+						time: server?.time || null,
+						restartAt: server?.restartAt || null
+					}
+				};
 			});
+
+			return playersWithServer;
 		} catch (error) {
 			console.error(
 				`${chalk.black.bgRed(
@@ -169,7 +193,7 @@ export class DatabaseService {
 
 	async upsertPlayer(playerData) {
 		try {
-			const {Uid, Username, Crew, Timestamp} = playerData;
+			const { Uid, Username, Crew, Timestamp } = playerData;
 
 			if (!Uid) {
 				throw new Error('UID is required for upsert operation');
@@ -214,7 +238,15 @@ export class DatabaseService {
 
 	async getAllServers() {
 		try {
-			return await this.prisma.Servers.findMany();
+			return await this.prisma.Servers.findMany({
+				select: {
+					id: true,
+					sId: true,
+					time: true,
+					restartAt: true,
+					players: false
+				}
+			});
 		} catch (error) {
 			console.error(
 				`${chalk.black.bgRed(
@@ -226,11 +258,24 @@ export class DatabaseService {
 		}
 	}
 
+	async getServerById(serverId) {
+		return this.prisma.Servers.findFirst({
+			select: {
+				id: true,
+				sId: true,
+				time: true,
+				restartAt: true,
+				players: true
+			},
+			where: { sId: serverId }
+		});
+	}
+
 	// Database service methods
 	async getLastFetch() {
 		try {
 			return await this.prisma.SystemMetadata.findUnique({
-				where: {key: 'players_last_fetch'}
+				where: { key: 'players_last_fetch' }
 			});
 		} catch (error) {
 			console.error(
@@ -244,7 +289,7 @@ export class DatabaseService {
 	async upsertLastFetch() {
 		try {
 			return await this.prisma.SystemMetadata.upsert({
-				where: {key: 'players_last_fetch'},
+				where: { key: 'players_last_fetch' },
 				update: {
 					lastFetch: new Date(),
 					value: 'success'
@@ -275,7 +320,7 @@ export class DatabaseService {
 			console.log(`${chalk.black.bgBlue("[PRISMA]")} - Starting optimized native upsert for ${playersData.length} players`);
 
 			const values = playersData.map(player => {
-				const {Uid, Username, Crew, Timestamp} = player;
+				const { Uid, Username, Crew, Timestamp } = player;
 				return `('${Uid}', ${Username ? `'${Username.replace(/'/g, "''")}'` : 'NULL'}, ${Crew ? `'${Crew.replace(/'/g, "''")}'` : 'NULL'}, ${Timestamp ? `'${Timestamp.toISOString()}'` : 'NULL'})`;
 			}).join(',\n');
 
@@ -315,14 +360,14 @@ export class DatabaseService {
 			// Utiliser un timeout plus long pour les transactions
 			const results = await this.prisma.$transaction(
 				playersData.map(playerData => {
-					const {Uid, Username, Crew, Timestamp} = playerData;
+					const { Uid, Username, Crew, Timestamp } = playerData;
 
 					if (!Uid) {
 						throw new Error(`UID is required for player: ${JSON.stringify(playerData)}`);
 					}
 
 					return this.prisma.Players.upsert({
-						where: {Uid},
+						where: { Uid },
 						update: {
 							Username: Username || null,
 							Crew: Crew || null,
@@ -385,14 +430,14 @@ export class DatabaseService {
 				try {
 					const chunkResults = await this.prisma.$transaction(
 						chunk.map(playerData => {
-							const {Uid, Username, Crew, Timestamp} = playerData;
+							const { Uid, Username, Crew, Timestamp } = playerData;
 
 							if (!Uid) {
 								throw new Error(`UID is required for player: ${JSON.stringify(playerData)}`);
 							}
 
 							return this.prisma.Players.upsert({
-								where: {Uid: Uid},
+								where: { Uid: Uid },
 								update: {
 									Username: Username || null,
 									Crew: Crew || null,
@@ -458,7 +503,7 @@ export class DatabaseService {
 						in: playersData.map(p => p.Uid)
 					}
 				},
-				select: {Uid: true}
+				select: { Uid: true }
 			});
 
 			const existingUidSet = new Set(existingUids.map(p => p.Uid));
@@ -470,7 +515,7 @@ export class DatabaseService {
 			let updatedCount = 0;
 
 			if (toCreate.length > 0) {
-				const createData = toCreate.map(({Uid, Username, Crew, Timestamp}) => ({
+				const createData = toCreate.map(({ Uid, Username, Crew, Timestamp }) => ({
 					Uid,
 					Username: Username || null,
 					Crew: Crew || null,
@@ -486,9 +531,9 @@ export class DatabaseService {
 			}
 
 			if (toUpdate.length > 0) {
-				for (const {Uid, Username, Crew, Timestamp} of toUpdate) {
+				for (const { Uid, Username, Crew, Timestamp } of toUpdate) {
 					await this.prisma.Players.update({
-						where: {Uid},
+						where: { Uid },
 						data: {
 							Username: Username || null,
 							Crew: Crew || null,
@@ -502,7 +547,7 @@ export class DatabaseService {
 			const totalTime = Date.now() - startTime;
 			console.log(`${chalk.black.bgGreen("[PRISMA]")} - Bulk upsert completed: ${createdCount} created, ${updatedCount} updated in ${totalTime}ms`);
 
-			return {created: createdCount, updated: updatedCount, total: createdCount + updatedCount};
+			return { created: createdCount, updated: updatedCount, total: createdCount + updatedCount };
 
 		} catch (error) {
 			console.error(`${chalk.black.bgRed("[PRISMA]")} - Error in bulk upsert:`, error);
