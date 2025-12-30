@@ -1,4 +1,4 @@
-import {DatabaseService} from "./database/index.js";
+import { DatabaseService } from "./database/index.js";
 import chalk from "chalk";
 import initLogger from "./utils/initLogger.js";
 import crypto from "crypto";
@@ -75,10 +75,10 @@ app.use(ipLogger);
 app.use(cors());
 
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 app.get("/players/info", RateLimit, async (req, res) => {
-	const {uid, username} = req.query;
+	const { uid, username } = req.query;
 	const startTime = performance.now();
 	const dbService = new DatabaseService();
 
@@ -192,7 +192,7 @@ app.get("/players/info", RateLimit, async (req, res) => {
 		console.error('Error in /players/info endpoint:', error);
 		res.status(500).json({
 			error: "Internal server error.",
-			...(process.env.NODE_ENV === 'development' && {details: error.message})
+			...(process.env.NODE_ENV === 'development' && { details: error.message })
 		});
 	}
 });
@@ -202,8 +202,13 @@ app.get('/servers/info', RateLimit, async (req, res) => {
 	const dbService = new DatabaseService();
 
 	try {
+		// Récupérer serverId depuis query params
+		const serverId = req.query.serverId;
+
+		// Générer clé cache dynamique selon serverId
+		const cacheKey = serverId ? `servers:${serverId}` : 'servers:all';
+
 		// Try to get data from cache first
-		const cacheKey = 'servers:all';
 		const [cachedData, ttl] = await Promise.all([
 			redis.get(cacheKey),
 			redis.ttl(cacheKey)
@@ -221,7 +226,24 @@ app.get('/servers/info', RateLimit, async (req, res) => {
 			});
 		}
 
-		const servers = await dbService.getAllServers();
+		let servers;
+		if (serverId) {
+			// Récupérer un seul serveur si serverId fourni
+			servers = await dbService.getServerById(serverId);
+			if (!servers) {
+				const endTime = performance.now();
+				const duration = (endTime - startTime).toFixed(2);
+				return res.status(404).json({
+					error: `Server ${serverId} not found`,
+					ping: duration,
+					cached: false
+				});
+			}
+			servers = [servers]; // Normaliser en array
+		} else {
+			// Récupérer tous les serveurs
+			servers = await dbService.getAllServers();
+		}
 
 		const endTime = performance.now();
 		const duration = (endTime - startTime).toFixed(2);
@@ -239,13 +261,15 @@ app.get('/servers/info', RateLimit, async (req, res) => {
 				id: server.id,
 				sId: server.sId,
 				time: server.time,
-				restartAt: server.restartAt
+				restartAt: server.restartAt,
+				players: server.players
 			})),
 			count: servers.length
 		};
 
-		// Cache the response for 60 seconds
-		await redis.set(cacheKey, JSON.stringify(response), "EX", 60);
+		// // Cache la réponse pour 60 secondes (tous serveurs) ou 120s (serveur unique)
+		const cacheExpiry = serverId ? 30 : 60;
+		await redis.set(cacheKey, JSON.stringify(response), "EX", cacheExpiry);
 
 		res.status(200).json({
 			...response,
@@ -257,7 +281,7 @@ app.get('/servers/info', RateLimit, async (req, res) => {
 		console.error('Error in /servers/info endpoint:', error);
 		res.status(500).json({
 			error: "Internal server error.",
-			...(process.env.NODE_ENV === 'development' && {details: error.message})
+			...(process.env.NODE_ENV === 'development' && { details: error.message })
 		});
 	}
 });
