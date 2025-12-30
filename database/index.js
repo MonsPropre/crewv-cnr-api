@@ -171,10 +171,10 @@ export class DatabaseService {
 
 				return {
 					...player,
-					server: server?.sId === null ? null : {
-						sId: server?.sId || null,
-						time: server?.time || null,
-						restartAt: server?.restartAt || null
+					server: !server?.sId ? null : {
+						sId: server?.sId,
+						time: server?.time,
+						restartAt: server?.restartAt
 					}
 				};
 			});
