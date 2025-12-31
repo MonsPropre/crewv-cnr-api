@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import redis from "./utils/redis.js";
 import path from "path";
+import { Prisma } from "@prisma/client";
 // import redis from "./utils/redis.js";
 
 const app = express();
@@ -76,6 +77,101 @@ app.use(cors());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/players/sinfo", RateLimit, async (req, res) => {
+	const { uid } = req.query;
+	const startTime = performance.now();
+	const dbService = new DatabaseService();
+
+	if (!uid) {
+		return res.status(400).json({
+			error: "Please specify 'uid' for the search."
+		});
+	}
+
+	try {
+		// Générer la clé de cache
+		const cacheKey = `players:sinfo:${uid}`;
+
+
+		// Vérifier le cache Redis
+		const [cachedData, ttl] = await Promise.all([
+			redis.get(cacheKey),
+			redis.ttl(cacheKey)
+		]);
+
+		if (cachedData) {
+			const endTime = performance.now();
+			const duration = (endTime - startTime).toFixed(2);
+
+			const parsedData = JSON.parse(cachedData);
+
+			return res.status(200).json({
+				...parsedData,
+				ping: duration,
+				cached: true,
+				ttl
+			});
+		}
+
+		// Récupérer tous les serveurs et filtrer en mémoire
+		const servers = await dbService.prisma.servers.findMany({
+			where: {
+				players: {
+					not: Prisma.JsonNull
+				}
+			}
+		});
+
+		const endTime = performance.now();
+		const duration = (endTime - startTime).toFixed(2);
+
+		// Rechercher le joueur dans les arrays JSON
+		let foundServer = null;
+		let foundPlayer = null;
+
+		for (const server of servers) {
+			if (Array.isArray(server.players)) {
+				const player = server.players.find(p => p.uid === uid);
+				if (player) {
+					foundServer = server;
+					foundPlayer = player;
+					break;
+				}
+			}
+		}
+
+		if (!foundPlayer) {
+			return res.status(404).json({
+				error: "Player not found.",
+				ping: duration,
+				cached: false
+			});
+		}
+
+		const playerData = {
+			...foundPlayer,
+			serverId: foundServer.sId,
+			restartAt: foundServer.restartAt
+		};
+
+		const response = {
+			...playerData,
+			ping: duration,
+			cached: false
+		};
+
+		await redis.set(cacheKey, JSON.stringify(playerData), "EX", 30);
+
+		return res.status(200).json(response);
+	} catch (error) {
+		console.error('Error in /players/sinfo endpoint:', error);
+		res.status(500).json({
+			error: "Internal server error.",
+			...(process.env.NODE_ENV === 'development' && { details: error.message })
+		});
+	}
+});
 
 app.get("/players/info", RateLimit, async (req, res) => {
 	const { uid, username } = req.query;
