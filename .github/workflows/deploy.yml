@@ -34,14 +34,18 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      
+          
+      - name: Set lowercase repository name
+        id: repo
+        run: echo "repo_name=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
-          tags: ghcr.io/${{ github.repository }}:latest
-      
+          tags: ghcr.io/${{ steps.repo.outputs.repo_name }}:latest
+          
       - name: Trigger Dokploy deployment
         uses: benbristow/dokploy-deploy-action@0.0.1
         with:
