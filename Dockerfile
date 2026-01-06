@@ -15,10 +15,10 @@ RUN pnpm install --frozen-lockfile
 # Copier le reste du code
 COPY . .
 
-# Générer Prisma et faire les migrations
-RUN pnpm run vercel-build
+# Générer SEULEMENT le client Prisma (pas de migration)
+RUN pnpm exec prisma generate
 
-EXPOSE 8153
+EXPOSE 3000
 
-# Démarrage
-CMD pnpm start
+# Migrations + démarrage (au runtime, pas au build)
+CMD pnpm exec prisma migrate deploy && pnpm start
