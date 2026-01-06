@@ -3,7 +3,7 @@ info:
   title: CrewV CnR API
   description: |
     API for CrewV CnR - Player and crew management system
-    
+
     This API allows you to:
     - Search for player information
     - Get API information and deployment region
@@ -35,7 +35,7 @@ paths:
             enum:
               - application/json
       responses:
-        '200':
+        "200":
           description: API information retrieved successfully
           content:
             application/json:
@@ -113,7 +113,7 @@ paths:
             type: string
           example: "[CBŚP] Baldy"
       responses:
-        '200':
+        "200":
           description: Player information found
           content:
             application/json:
@@ -153,7 +153,7 @@ paths:
                   required:
                     - Uid
                     - Username
-        '400':
+        "400":
           description: Missing or invalid query parameters
           content:
             application/json:
@@ -163,7 +163,7 @@ paths:
                   error:
                     type: string
                     example: "Please specify either 'id' or 'uid' or 'username' for the search."
-        '500':
+        "500":
           description: Internal server error
           content:
             application/json:
