@@ -70,8 +70,36 @@ const RateLimit = async (req, res, next) => {
 	next();
 };
 
+const Authenticate = async (req, res, next) => {
+	if (!process.env.API_KEY) return next();
+	const authHeader = req.headers['authorization'];
+	if (!authHeader || !authHeader.startsWith('Bearer ')) {
+		return res.status(401).json({
+			error: "Unauthorized."
+		});
+	}
+
+	const token = authHeader.split(' ')[1];
+	if (!token) {
+		return res.status(401).json({
+			error: "Unauthorized."
+		});
+	}
+
+	const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+	if (!decodedToken) {
+		return res.status(401).json({
+			error: "Unauthorized."
+		});
+	}
+
+	req.user = decodedToken;
+	next();
+}
+
 app.set('trust proxy', ["10.0.3.0/24"]);
 
+app.use(Authenticate);
 app.use(ipLogger);
 app.use(cors());
 
