@@ -244,9 +244,14 @@ export class DatabaseService {
 					sId: true,
 					time: true,
 					restartAt: true,
-					players: false
+					players: true
 				}
-			});
+			}).then(servers =>
+				servers.map(server => ({
+					...server,
+					playersCount: Array.isArray(server.players) ? server.players.length : 0
+				}))
+			);
 		} catch (error) {
 			console.error(
 				`${chalk.black.bgRed(
