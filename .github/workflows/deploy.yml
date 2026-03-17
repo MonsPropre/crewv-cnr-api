@@ -34,3 +34,6 @@ jobs:
           push: true
           tags: ghcr.io/${{ steps.repo.outputs.repo_name }}:latest
           platforms: linux/amd64
+      - name: Trigger Dokploy Deployment
+        run: |
+          curl -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}"
