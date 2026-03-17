@@ -71,6 +71,7 @@ const RateLimit = async (req, res, next) => {
 };
 
 const Authenticate = async (req, res, next) => {
+	// API Key only
 	if (!process.env.API_KEY) return next();
 	const authHeader = req.headers['authorization'];
 	if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -86,14 +87,11 @@ const Authenticate = async (req, res, next) => {
 		});
 	}
 
-	const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
-	if (!decodedToken) {
+	if (token !== process.env.API_KEY) {
 		return res.status(401).json({
 			error: "Unauthorized."
 		});
 	}
-
-	req.user = decodedToken;
 	next();
 }
 
