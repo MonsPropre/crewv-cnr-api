@@ -238,20 +238,12 @@ export class DatabaseService {
 
 	async getAllServers() {
 		try {
-			return await this.prisma.Servers.findMany({
-				select: {
-					id: true,
-					sId: true,
-					time: true,
-					restartAt: true,
-					players: true
-				}
-			}).then(servers =>
-				servers.map(server => ({
-					...server,
-					playersCount: Array.isArray(server.players) ? server.players.length : 0
-				}))
-			);
+			return await this.prisma.$queryRaw`
+				SELECT 
+					id, "sId", "time", "restartAt",
+					jsonb_array_length("players") AS "playersCount"
+				FROM "Servers"
+			`;
 		} catch (error) {
 			console.error(
 				`${chalk.black.bgRed(

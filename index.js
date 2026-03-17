@@ -384,12 +384,12 @@ app.get('/servers/info', RateLimit, async (req, res) => {
 				sId: server.sId,
 				time: server.time,
 				restartAt: server.restartAt,
-				players: server.players
+				players: server.playersCount
 			})),
 			count: servers.length
 		};
 
-		// // Cache la réponse pour 60 secondes (tous serveurs) ou 120s (serveur unique)
+		// Cache la réponse pour 60 secondes (tous serveurs) ou 120s (serveur unique)
 		const cacheExpiry = serverId ? 30 : 60;
 		await redis.set(cacheKey, JSON.stringify(response), "EX", cacheExpiry);
 
