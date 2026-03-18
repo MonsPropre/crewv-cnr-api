@@ -26,13 +26,24 @@ model Players {
 }
 
 model Servers {
-  id        Int       @id @default(autoincrement())
-  sId       String    @unique(map: "sId")
-  time      String?
-  restartAt DateTime?
-  players   Json?     @default("[]")
+  id             Int              @id @default(autoincrement())
+  sId            String           @unique(map: "sId")
+  time           String?
+  restartAt      DateTime?
+  players        Json?            @default("{}")
+  ServersHistory ServersHistory[]
 
   @@map("Servers")
+}
+
+model ServersHistory {
+  id          Int      @id @default(autoincrement())
+  playerCount Int?
+  createdAt   DateTime @default(now())
+  sId         String
+  Servers     Servers  @relation(fields: [sId], references: [sId], onDelete: NoAction, onUpdate: NoAction, map: "FK_ServersHistory_Servers")
+
+  @@map("ServersHistory")
 }
 
 model SystemMetadata {

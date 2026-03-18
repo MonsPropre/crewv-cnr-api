@@ -104,6 +104,62 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const MCP_TOKEN = process.env.MCP_TOKEN;
+
+export const mcpAuth = (req, res, next) => {
+	const authHeader = req.headers["authorization"];
+	console.log(authHeader);
+	const token = authHeader?.startsWith("Bearer ")
+		? authHeader.slice(7)
+		: null;
+
+	if (!token || token !== MCP_TOKEN) {
+		return res.status(401).json({
+			error: {
+				message: "Invalid or missing MCP token",
+			},
+		});
+	}
+
+	return next();
+};
+
+app.get("/mcp/tools", (req, res) => {
+	res.json({
+		tools: [
+			{
+				name: "get_weather",
+				description: "Get weather for a location",
+				input_schema: {
+					type: "object",
+					properties: {
+						location: {
+							type: "string",
+							description: "City name",
+						},
+					},
+					required: ["location"],
+				},
+			},
+		],
+	});
+});
+
+// Route du tool MCP (protégée par ton token unique)
+app.post("/mcp/tools/get_weather", mcpAuth, (req, res) => {
+	const { location } = req.body;
+	if (!location || typeof location !== "string") {
+		return res.status(400).json({
+			error: "Missing or invalid location",
+		});
+	}
+
+	// Exemple de réponse
+	return res.json({
+		result: `Weather for ${location}: sunny, 22°C`,
+	});
+});
+
 app.get("/players/sinfo", RateLimit, async (req, res) => {
 	const { uid } = req.query;
 	const startTime = performance.now();
