@@ -97,7 +97,6 @@ const Authenticate = async (req, res, next) => {
 
 app.set('trust proxy', ["10.0.3.0/24"]);
 
-app.use(Authenticate);
 app.use(ipLogger);
 app.use(cors());
 
@@ -159,6 +158,8 @@ app.post("/mcp/tools/get_weather", mcpAuth, (req, res) => {
 		result: `Weather for ${location}: sunny, 22°C`,
 	});
 });
+
+app.use(Authenticate);
 
 app.get("/players/sinfo", RateLimit, async (req, res) => {
 	const { uid } = req.query;
